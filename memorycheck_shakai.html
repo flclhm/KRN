@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>メモリーチェック社会 【80単元完全マスター】</title>
+  <style>
+    :root {
+      --primary: #10b981;
+      --primary-dark: #059669;
+      --bg: #f4f7f9;
+      --header-bg: #0f172a;
+      --header-sub: #1e293b;
+      --text: #334155;
+      --text-dark: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --learned: #10b981;
+      --wrong: #ef4444;
+      --badge-bg: #fbbf24;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; background-color: var(--bg); color: var(--text); line-height: 1.6; padding-bottom: 80px; }
+    
+    /* ヘッダー周りのデザイン復元 */
+    header { background: var(--header-bg); color: white; position: sticky; top: 0; z-index: 50; }
+    .header-main { max-width: 1000px; margin: 0 auto; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+    .title-area { display: flex; align-items: center; gap: 10px; }
+    .logo-badge { background: var(--badge-bg); color: #000; font-size: 0.8rem; font-weight: 800; padding: 4px 10px; border-radius: 6px; letter-spacing: 0.05em; }
+    .app-title { font-size: 1.25rem; font-weight: 800; letter-spacing: 0.02em; }
+    
+    .nav-menu { display: flex; gap: 16px; overflow-x: auto; font-size: 0.9rem; font-weight: 700; }
+    .nav-item { color: #cbd5e1; text-decoration: none; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: 0.2s; white-space: nowrap; }
+    .nav-item:hover, .nav-item.active { color: white; }
+    .nav-item.active { border-bottom: 2px solid var(--badge-bg); padding-bottom: 2px; }
+
+    /* サブヘッダー（定着度バー） */
+    .header-sub { background: var(--header-sub); padding: 8px 16px; border-bottom: 1px solid #334155; }
+    .sub-inner { max-width: 1000px; margin: 0 auto; display: flex; align-items: center; gap: 16px; font-size: 0.85rem; font-weight: 700; color: #cbd5e1; }
+    .sub-stat-text { white-space: nowrap; }
+    .sub-stat-text span { color: var(--badge-bg); }
+    .global-progress-bar { flex: 1; height: 8px; background: #334155; border-radius: 4px; overflow: hidden; display: flex; }
+    
+    .container { max-width: 1000px; margin: 20px auto; padding: 0 16px; }
+    
+    /* フィルタータブの復元 */
+    .theme-filter { display: flex; gap: 12px; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 16px; overflow-x: auto; }
+    .theme-chip { padding: 8px 16px; border-radius: 20px; font-size: 0.9rem; font-weight: 700; cursor: pointer; white-space: nowrap; transition: 0.2s; border: 1px solid var(--border); background: white; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+    .theme-chip:hover { background: #f8fafc; }
+    .theme-chip.active { background: var(--header-bg); color: white; border-color: var(--header-bg); }
+
+    /* カードグリッドの復元 */
+    .unit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+    .unit-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 16px; cursor: pointer; min-height: 120px; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: 0.2s; }
+    .unit-card:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.05); border-color: #cbd5e1; }
+    
+    .unit-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .unit-tag { font-size: 0.75rem; font-weight: 800; color: #10b981; background: #ecfdf5; padding: 2px 8px; border-radius: 4px; border: 1px solid #a7f3d0; }
+    .unit-theme { font-size: 0.75rem; color: var(--text-muted); font-weight: 700; }
+    .unit-title { font-size: 1.1rem; font-weight: 800; color: var(--text-dark); margin-bottom: 16px; line-height: 1.4; }
+    .unit-meta { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); font-weight: 700; border-top: 1px dashed var(--border); padding-top: 12px; }
+
+    /* 問題・詳細ビュー */
+    .view-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .back-btn { background: white; border: 1px solid var(--border); padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer; color: var(--text-dark); box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+    .back-btn:hover { background: #f8fafc; }
+    .view-title { font-size: 1.3rem; font-weight: 800; color: var(--text-dark); }
+    
+    .question-card { background: white; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 20px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
+    .q-head { padding: 12px 16px; border-bottom: 1px solid var(--bg); display: flex; justify-content: space-between; align-items: center; background: #f8fafc; }
+    .badge-diag { font-size: 0.75rem; font-weight: 800; padding: 4px 10px; border-radius: 4px; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .badge-exercise { font-size: 0.75rem; font-weight: 800; padding: 4px 10px; border-radius: 4px; background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+    
+    .q-body { padding: 20px 16px; }
+    .q-text { font-size: 1.05rem; font-weight: 700; line-height: 1.6; color: var(--text-dark); white-space: pre-line; }
+    
+    .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+    .opt-btn { padding: 12px; background: white; border: 2px solid var(--border); border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; text-align: left; transition: 0.15s; color: var(--text-dark); }
+    .opt-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
+    .opt-btn.correct { background: #dcfce7 !important; border-color: #22c55e !important; color: #15803d !important; }
+    .opt-btn.wrong { background: #fee2e2 !important; border-color: #ef4444 !important; color: #b91c1c !important; }
+
+    .accordion-toggle { width: 100%; background: white; border: none; border-top: 1px solid var(--border); padding: 14px 16px; text-align: left; font-weight: 800; color: #0284c7; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+    .accordion-toggle:hover { background: #f8fafc; }
+    .accordion-content { display: none; padding: 20px 16px; background: #f8fafc; border-top: 1px dashed var(--border); }
+    .accordion-content.open { display: block; }
+    .answer-text { font-size: 1.15rem; font-weight: 800; color: #0f172a; margin-bottom: 10px; white-space: pre-line; }
+    .desc-box { font-size: 0.95rem; background: #fff; padding: 12px; border-radius: 8px; border: 1px solid var(--border); border-left: 4px solid var(--badge-bg); color: var(--text); line-height: 1.5; white-space: pre-line; }
+
+    /* トグルボタン（白背景フラット） */
+    .status-bar { display: flex; background: white; border-top: 1px solid var(--border); padding: 10px 16px; gap: 10px; justify-content: flex-end; }
+    .flag-toggle { border: 1px solid var(--border); background: #f8fafc; font-size: 0.85rem; font-weight: 700; padding: 8px 16px; border-radius: 8px; cursor: pointer; color: var(--text-muted); transition: 0.15s; }
+    .flag-toggle.active-unlearned { background: #e2e8f0; color: #334155; border-color: #cbd5e1; }
+    .flag-toggle.active-wrong { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+    .flag-toggle.active-learned { background: #dcfce7; color: #16a34a; border-color: #86efac; }
+
+    /* コントロールボックス・データ管理 */
+    .control-box { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+    .primary-btn { background: var(--header-bg); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 1rem; font-weight: 800; cursor: pointer; transition: 0.2s; }
+    .primary-btn:hover { background: #334155; }
+    .data-textarea { width: 100%; height: 180px; padding: 12px; font-family: monospace; border: 1px solid var(--border); border-radius: 8px; margin-top: 12px; margin-bottom: 16px; resize: vertical; background: #f8fafc; }
+
+    .view-panel { display: none; }
+    .view-panel.active { display: block; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-main">
+      <div class="title-area">
+        <span class="logo-badge">受験合格</span>
+        <span class="app-title">メモリーチェック社会</span>
+      </div>
+      <div class="nav-menu">
+        <div class="nav-item active" onclick="switchTab('index')">📚 目次</div>
+        <div class="nav-item" onclick="switchTab('diag')">🔍 診断</div>
+        <div class="nav-item" onclick="switchTab('test')">🎯 テスト</div>
+        <div class="nav-item" onclick="switchTab('weakness')">🔥 弱点</div>
+        <div class="nav-item" onclick="switchTab('data')">⚙️ データ管理</div>
+      </div>
+    </div>
+    <div class="header-sub">
+      <div class="sub-inner">
+        <div class="sub-stat-text" id="header-stat-text">定着度: 覚えた: 0 / 0問 (0%)</div>
+        <div class="global-progress-bar">
+          <div id="global-progress-learned" style="width: 0%; background: var(--learned);"></div>
+          <div id="global-progress-wrong" style="width: 0%; background: var(--wrong);"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- 目次 -->
+    <div id="view-index" class="view-panel active">
+      <div class="theme-filter" id="theme-filter-container">
+        <!-- JSで生成 -->
+      </div>
+      <div class="unit-grid" id="unit-grid-container">
+        <!-- JSで生成 -->
+      </div>
+    </div>
+    
+    <!-- 単元詳細 -->
+    <div id="view-unit" class="view-panel">
+      <div class="view-header">
+        <button class="back-btn" onclick="switchTab('index')">← 目次に戻る</button>
+        <div class="view-title" id="current-unit-title">単元タイトル</div>
+        <div style="font-weight:700; color:var(--text-muted);" id="current-unit-stat"></div>
+      </div>
+      <div id="unit-questions-container"></div>
+    </div>
+    
+    <!-- 弱点診断 -->
+    <div id="view-diag" class="view-panel">
+      <div class="control-box">
+        <div style="font-weight:800; font-size:1.2rem; color:var(--text-dark);">🔍 弱点診断 4択テスト</div>
+        <div style="font-size:0.9rem; color:var(--text-muted); margin-top:4px;">※2問以上間違えた単元は自動ピックアップされます。</div>
+      </div>
+      <div id="diag-warning-box" style="display:none; margin-bottom:20px;"></div>
+      <div id="diag-questions-container"></div>
+    </div>
+
+    <!-- 総合テスト -->
+    <div id="view-test" class="view-panel">
+      <div class="control-box" style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="font-weight:800; font-size:1.2rem; color:var(--text-dark);">🎯 総合テスト</div>
+          <div style="font-size:0.9rem; color:var(--text-muted); margin-top:4px;">全問題からランダムに出題します。</div>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <select id="test-count" style="padding:10px; border-radius:8px; border:1px solid var(--border); font-weight:700;">
+            <option value="30">30問</option><option value="50" selected>50問</option><option value="100">100問</option>
+          </select>
+          <button class="primary-btn" onclick="startTest()">テスト開始</button>
+        </div>
+      </div>
+      <div id="test-questions-container"></div>
+    </div>
+    
+    <!-- 弱点克服 -->
+    <div id="view-weakness" class="view-panel">
+      <div class="control-box" style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="font-weight:800; font-size:1.2rem; color:#b91c1c;">🔥 弱点特訓モード</div>
+          <div style="font-size:0.9rem; color:var(--text-muted); margin-top:4px;">間違えた問題だけを最大20問出題します。</div>
+        </div>
+        <button class="primary-btn" onclick="loadWeaknessQuestions()" style="background:#475569;">再シャッフル</button>
+      </div>
+      <div id="weakness-questions-container"></div>
+    </div>
+
+    <!-- データ管理 -->
+    <div id="view-data" class="view-panel">
+      <div class="control-box">
+        <div style="font-weight:800; font-size:1.2rem; color:var(--text-dark);">📥 問題データの追加（インポート）</div>
+        <div style="font-size:0.9rem; color:var(--text-muted); margin-top:4px;">AIが出力したデータ（JSON）を下に貼り付けてください。<br>※既存の学習履歴は維持されたまま、新しい問題が追加されます。</div>
+        <textarea id="import-textarea" class="data-textarea" placeholder='[ {"id": "1-diag-1", "unitId": 1, ... } ]'></textarea>
+        <div style="display:flex; justify-content:space-between;">
+          <button class="primary-btn" style="background:white; color:#ef4444; border:1px solid #ef4444;" onclick="clearAllData()">全データをリセット</button>
+          <button class="primary-btn" style="background:#0284c7;" onclick="importData()">＋データを取り込む</button>
+        </div>
+      </div>
+
+      <div class="control-box">
+        <div style="font-weight:800; font-size:1.2rem; color:var(--text-dark);">💾 学習データのバックアップ（エクスポート）</div>
+        <div style="font-size:0.9rem; color:var(--text-muted); margin-top:4px;">現在の全データと学習履歴（覚えたフラグ）をテキストとして書き出します。<br>コピーしてメモ帳などに保存すれば、別の端末へ移すことも可能です。</div>
+        <button class="primary-btn" style="background:#10b981; margin-top:12px;" onclick="exportData()">バックアップ用テキストを作成</button>
+        <textarea id="export-textarea" class="data-textarea" readonly style="display:none;"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 80単元のマスター枠組み
+    const UNITS_MASTER = [
+      {id:1, theme:"地理", title:"日本列島", tags:"日本の国土"}, {id:2, theme:"地理", title:"海岸線と湾・半島", tags:"日本の国土"},
+      {id:3, theme:"地理", title:"山地・山脈と湖・川", tags:"地形"}, {id:4, theme:"地理", title:"平野・台地・盆地", tags:"地形"},
+      {id:5, theme:"地理", title:"気候の特色と災害", tags:"気候"}, {id:6, theme:"地理", title:"気候区分", tags:"気候"},
+      {id:7, theme:"地理", title:"都市・都道府県", tags:"都市と人口"}, {id:8, theme:"地理", title:"人口", tags:"都市と人口"},
+      {id:9, theme:"地理", title:"農業の特色", tags:"農業"}, {id:10, theme:"地理", title:"農作物と米", tags:"農業"},
+      {id:11, theme:"地理", title:"畑作", tags:"農業"}, {id:12, theme:"地理", title:"果実と畜産", tags:"農業"},
+      {id:13, theme:"地理", title:"農業生産を高めるくふう", tags:"農業"}, {id:14, theme:"地理", title:"かんがい用水", tags:"農業"},
+      {id:15, theme:"地理", title:"漁業の種類", tags:"水産業"}, {id:16, theme:"地理", title:"漁法と漁港", tags:"水産業"},
+      {id:17, theme:"地理", title:"漁業の問題", tags:"水産業"}, {id:18, theme:"地理", title:"工業の種類", tags:"工業"},
+      {id:19, theme:"地理", title:"工業の特色", tags:"工業"}, {id:20, theme:"地理", title:"工業のさかんな地域", tags:"工業"},
+      {id:21, theme:"地理", title:"工業地帯と工業地域①", tags:"工業"}, {id:22, theme:"地理", title:"工業地帯と工業地域②", tags:"工業"},
+      {id:23, theme:"地理", title:"伝統工業", tags:"工業"}, {id:24, theme:"地理", title:"公害", tags:"工業"},
+      {id:25, theme:"地理", title:"生活と交通", tags:"生活と交通"}, {id:26, theme:"地理", title:"地下・エネルギー資源", tags:"資源"},
+      {id:27, theme:"地理", title:"水・森林資源", tags:"資源"}, {id:28, theme:"地理", title:"貿易の種類と貿易品目", tags:"貿易"},
+      {id:29, theme:"地理", title:"貿易相手国と貿易港", tags:"貿易"}, {id:30, theme:"地理", title:"九州地方の自然と産業", tags:"地方別"},
+      {id:31, theme:"地理", title:"中国・四国地方の自然と産業", tags:"地方別"}, {id:32, theme:"地理", title:"近畿地方の自然と産業", tags:"地方別"},
+      {id:33, theme:"地理", title:"中部地方の自然と産業", tags:"地方別"}, {id:34, theme:"地理", title:"関東地方の自然と産業", tags:"地方別"},
+      {id:35, theme:"地理", title:"東北地方の自然と産業", tags:"地方別"}, {id:36, theme:"地理", title:"北海道地方の自然と産業", tags:"地方別"},
+      {id:37, theme:"歴史", title:"原始時代", tags:"原始・古代"}, {id:38, theme:"歴史", title:"大和政権と古墳文化", tags:"原始・古代"},
+      {id:39, theme:"歴史", title:"聖徳太子と大化の改新", tags:"原始・古代"}, {id:40, theme:"歴史", title:"平城京と聖武天皇", tags:"原始・古代"},
+      {id:41, theme:"歴史", title:"荘園の始まりと天平文化", tags:"原始・古代"}, {id:42, theme:"歴史", title:"平安京と桓武天皇", tags:"原始・古代"},
+      {id:43, theme:"歴史", title:"摂関政治と国風文化", tags:"原始・古代"}, {id:44, theme:"歴史", title:"院政と平氏の政権", tags:"中世"},
+      {id:45, theme:"歴史", title:"鎌倉幕府と承久の乱", tags:"中世"}, {id:46, theme:"歴史", title:"元寇と鎌倉文化", tags:"中世"},
+      {id:47, theme:"歴史", title:"建武の新政と室町幕府", tags:"中世"}, {id:48, theme:"歴史", title:"応仁の乱と室町時代の文化", tags:"中世"},
+      {id:49, theme:"歴史", title:"下剋上と戦国大名", tags:"中世"}, {id:50, theme:"歴史", title:"信長・秀吉と桃山文化", tags:"近世"},
+      {id:51, theme:"歴史", title:"江戸幕府と大名", tags:"近世"}, {id:52, theme:"歴史", title:"鎖国", tags:"近世"},
+      {id:53, theme:"歴史", title:"産業の発達と元禄文化", tags:"近世"}, {id:54, theme:"歴史", title:"三大改革", tags:"近世"},
+      {id:55, theme:"歴史", title:"新しい学問と化政文化", tags:"近世"}, {id:56, theme:"歴史", title:"開国", tags:"近現代"},
+      {id:57, theme:"歴史", title:"幕府の滅亡", tags:"近現代"}, {id:58, theme:"歴史", title:"五か条の御誓文と文明開化", tags:"近現代"},
+      {id:59, theme:"歴史", title:"自由民権運動と日清戦争", tags:"近現代"}, {id:60, theme:"歴史", title:"日露戦争と条約改正", tags:"近現代"},
+      {id:61, theme:"歴史", title:"第一次世界大戦と大正デモクラシー", tags:"近現代"}, {id:62, theme:"歴史", title:"世界恐慌と第二次世界大戦", tags:"近現代"},
+      {id:63, theme:"歴史", title:"戦後の民主化と朝鮮戦争", tags:"近現代"},
+      {id:64, theme:"公民・世界", title:"民主政治", tags:"政治"}, {id:65, theme:"公民・世界", title:"大日本帝国憲法と日本国憲法", tags:"政治"},
+      {id:66, theme:"公民・世界", title:"日本国憲法の三原則①", tags:"政治"}, {id:67, theme:"公民・世界", title:"日本国憲法の三原則②", tags:"政治"},
+      {id:68, theme:"公民・世界", title:"三権分立と国会の地位", tags:"政治"}, {id:69, theme:"公民・世界", title:"国会の審議と仕事", tags:"政治"},
+      {id:70, theme:"公民・世界", title:"内閣", tags:"政治"}, {id:71, theme:"公民・世界", title:"裁判所", tags:"政治"},
+      {id:72, theme:"公民・世界", title:"財政", tags:"経済・社会"}, {id:73, theme:"公民・世界", title:"地方自治", tags:"政治"},
+      {id:74, theme:"公民・世界", title:"地球", tags:"地理"}, {id:75, theme:"公民・世界", title:"世界の国々①", tags:"地理"},
+      {id:76, theme:"公民・世界", title:"世界の国々②", tags:"地理"}, {id:77, theme:"公民・世界", title:"地球環境", tags:"環境"},
+      {id:78, theme:"公民・世界", title:"国際連盟と国際連合", tags:"国際社会"}, {id:79, theme:"公民・世界", title:"国際連合のしくみ", tags:"国際社会"},
+      {id:80, theme:"公民・世界", title:"軍拡から軍縮へのあゆみ", tags:"国際社会"}
+    ];
+
+    const STORAGE_KEY = "memocheck_shakai_db_v4";
+    let appData = { questions: [], status: {} };
+    let activeTheme = 'すべて (全80単元)';
+    let currentUnitId = null;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadStorage();
+      buildFilters();
+      renderGrid();
+      updateStats();
+    });
+
+    function loadStorage() {
+      try {
+        const s = localStorage.getItem(STORAGE_KEY);
+        if (s) {
+          const parsed = JSON.parse(s);
+          appData.questions = parsed.questions || [];
+          appData.status = parsed.status || {};
+        }
+      } catch(e) { console.error(e); }
+    }
+
+    function saveStorage() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+      updateStats();
+    }
+
+    function getStat(id) { return appData.status[id] || 'unlearned'; }
+    function setStat(id, st, e) {
+      if(e) e.stopPropagation();
+      appData.status[id] = st;
+      saveStorage();
+      renderGrid();
+      if(currentUnitId) openUnit(currentUnitId);
+    }
+
+    function updateStats() {
+      const qCount = appData.questions.length;
+      const learned = appData.questions.filter(q => getStat(q.id) === 'learned').length;
+      const wrong = appData.questions.filter(q => getStat(q.id) === 'wrong').length;
+      
+      const pctL = qCount ? (learned/qCount)*100 : 0;
+      const pctW = qCount ? (wrong/qCount)*100 : 0;
+      
+      document.getElementById('header-stat-text').innerHTML = `定着度: <span>覚えた: ${learned} / ${qCount}問</span> (${Math.round(pctL)}%)`;
+      document.getElementById('global-progress-learned').style.width = `${pctL}%`;
+      document.getElementById('global-progress-wrong').style.width = `${pctW}%`;
+    }
+
+    function switchTab(t) {
+      document.querySelectorAll('.nav-item').forEach((b, i) => {
+        b.classList.toggle('active', (t==='index'&&i===0)||(t==='diag'&&i===1)||(t==='test'&&i===2)||(t==='weakness'&&i===3)||(t==='data'&&i===4));
+      });
+      document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('view-'+t).classList.add('active');
+      
+      if(t==='index') { currentUnitId = null; renderGrid(); }
+      if(t==='diag') renderDiag();
+      if(t==='weakness') loadWeaknessQuestions();
+    }
+
+    function buildFilters() {
+      const themes = [
+        { label: 'すべて (全80単元)', val: 'すべて (全80単元)' },
+        { label: '🗾 地理', val: '地理' },
+        { label: '🏯 歴史', val: '歴史' },
+        { label: '⚖️ 公民・世界', val: '公民・世界' }
+      ];
+      const c = document.getElementById('theme-filter-container');
+      c.innerHTML = '';
+      themes.forEach(th => {
+        const b = document.createElement('button');
+        b.className = `theme-chip ${th.val===activeTheme?'active':''}`;
+        b.innerText = th.label;
+        b.onclick = () => {
+          activeTheme = th.val;
+          document.querySelectorAll('.theme-chip').forEach(x => x.classList.remove('active'));
+          b.classList.add('active');
+          renderGrid();
+        };
+        c.appendChild(b);
+      });
+    }
+
+    function renderGrid() {
+      const c = document.getElementById('unit-grid-container');
+      c.innerHTML = '';
+      UNITS_MASTER.filter(u => activeTheme==='すべて (全80単元)' || u.theme===activeTheme).forEach(u => {
+        const qs = appData.questions.filter(q => q.unitId === u.id);
+        const lrn = qs.filter(q => getStat(q.id) === 'learned').length;
+        
+        const d = document.createElement('div');
+        d.className = 'unit-card';
+        d.onclick = () => openUnit(u.id);
+        d.innerHTML = `
+          <div>
+            <div class="unit-header"><span class="unit-tag">${u.theme} [単元${u.id}]</span><span class="unit-theme">${u.tags}</span></div>
+            <div class="unit-title">${u.title}</div>
+          </div>
+          <div class="unit-meta"><span>${qs.length}問 収録</span><span>覚えた: ${lrn}/${qs.length}</span></div>
+        `;
+        c.appendChild(d);
+      });
+    }
+
+    function openUnit(uid) {
+      currentUnitId = uid;
+      document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('view-unit').classList.add('active');
+      const u = UNITS_MASTER.find(x => x.id === uid);
+      document.getElementById('current-unit-title').innerText = `単元${uid} ${u.title}`;
+      
+      const c = document.getElementById('unit-questions-container');
+      c.innerHTML = '';
+      const qs = appData.questions.filter(q => q.unitId === uid);
+      document.getElementById('current-unit-stat').innerText = `${qs.filter(x=>getStat(x.id)==='learned').length}/${qs.length} 完了`;
+      
+      if(qs.length === 0) {
+        c.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-muted);">データがインポートされていません。</div>';
+        return;
+      }
+      qs.forEach((q, i) => c.appendChild(createCard(q, i+1)));
+    }
+
+    // 記述問題のバグ修正：安全に表示する
+    function escapeHTML(str) {
+      if(!str) return "";
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;').replace(/\n/g, '<br>');
+    }
+
+    function createCard(q, num) {
+      const d = document.createElement('div');
+      d.className = 'question-card';
+      const st = getStat(q.id);
+      const isD = q.section === 'diag';
+      const bHtml = isD ? `<span class="badge-diag">弱点診断 4択</span>` : `<span class="badge-exercise">要点チェック</span>`;
+      
+      const qText = escapeHTML(q.q);
+      const aText = escapeHTML(q.a);
+      const descText = q.desc ? escapeHTML(q.desc) : '';
+
+      let optHtml = '';
+      if(q.type === 'choice' && q.options) {
+        optHtml = `<div class="options-grid" id="opt-${q.id}">` + 
+          q.options.map(o => {
+            const escOpt = escapeHTML(o);
+            const jsSel = o.replace(/'/g, "\\'").replace(/"/g, '\\"');
+            const jsAns = q.a.replace(/'/g, "\\'").replace(/"/g, '\\"');
+            return `<button class="opt-btn" onclick="check('${q.id}','${jsSel}','${jsAns}',this)">${escOpt}</button>`;
+          }).join('') + `</div>`;
+      }
+
+      d.innerHTML = `
+        <div class="q-head">${bHtml}<span style="font-size:0.85rem; font-weight:800; color:var(--text-muted);">Q${num}</span></div>
+        <div class="q-body">
+          <div class="q-text">${qText}</div>
+          ${optHtml}
+        </div>
+        <button class="accordion-toggle" onclick="toggleAns('ans-${q.id}', this)">
+          <span>👉 答え・解説を表示</span><span>▼</span>
+        </button>
+        <div class="accordion-content" id="ans-${q.id}">
+          <div class="answer-text">${aText}</div>
+          ${descText ? `<div class="desc-box">💡 ${descText}</div>` : ''}
+        </div>
+        <div class="status-bar">
+          <button class="flag-toggle ${st==='unlearned'?'active-unlearned':''}" onclick="setStat('${q.id}','unlearned',event)">未着手</button>
+          <button class="flag-toggle ${st==='wrong'?'active-wrong':''}" onclick="setStat('${q.id}','wrong',event)">X 間違った</button>
+          <button class="flag-toggle ${st==='learned'?'active-learned':''}" onclick="setStat('${q.id}','learned',event)">✓ 覚えた</button>
+        </div>
+      `;
+      return d;
+    }
+
+    function toggleAns(id, btn) {
+      const el = document.getElementById(id);
+      const isO = el.classList.toggle('open');
+      btn.querySelector('span:last-child').innerText = isO ? '▲' : '▼';
+    }
+
+    function check(qid, sel, ans, btn) {
+      const box = document.getElementById(`opt-${qid}`);
+      box.querySelectorAll('.opt-btn').forEach(b => b.disabled = true);
+      if(sel === ans) {
+        btn.classList.add('correct'); setStat(qid, 'learned', null);
+      } else {
+        btn.classList.add('wrong');
+        box.querySelectorAll('.opt-btn').forEach(b => { if(b.innerText===ans) b.classList.add('correct'); });
+        setStat(qid, 'wrong', null);
+      }
+      document.getElementById(`ans-${qid}`).classList.add('open');
+      document.querySelector(`#ans-${qid}`).previousElementSibling.querySelector('span:last-child').innerText = '▲';
+    }
+
+    function renderDiag() {
+      const c = document.getElementById('diag-questions-container');
+      c.innerHTML = '';
+      const wbox = document.getElementById('diag-warning-box');
+      let wUnits = [];
+      UNITS_MASTER.forEach(u => {
+        const qs = appData.questions.filter(q => q.unitId === u.id && q.section === 'diag');
+        if(qs.filter(q => getStat(q.id)==='wrong').length >= 2) wUnits.push(u);
+      });
+      if(wUnits.length > 0) {
+        wbox.style.display = 'block';
+        wbox.innerHTML = `<div style="background:#fee2e2; border:2px solid #ef4444; border-radius:8px; padding:16px;">
+          <div style="font-weight:800; color:#b91c1c; margin-bottom:10px;">⚠️ 2問以上ミスした重点復習単元</div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            ${wUnits.map(u => `<button onclick="openUnit(${u.id})" style="background:white; border:1px solid #ef4444; color:#b91c1c; padding:6px 12px; border-radius:6px; font-weight:800; cursor:pointer;">単元${u.id} ${u.title} →</button>`).join('')}
+          </div></div>`;
+      } else { wbox.style.display = 'none'; }
+
+      const dQs = appData.questions.filter(q => q.section === 'diag');
+      if(dQs.length===0) { c.innerHTML='<div style="padding:40px; text-align:center; color:var(--text-muted);">診断問題がありません</div>'; return; }
+      dQs.forEach((q, i) => c.appendChild(createCard(q, i+1)));
+    }
+
+    function startTest() {
+      const count = parseInt(document.getElementById('test-count').value, 10);
+      const c = document.getElementById('test-questions-container');
+      c.innerHTML = '';
+      const sh = [...appData.questions].sort(()=>0.5-Math.random()).slice(0, Math.min(count, appData.questions.length));
+      if(sh.length===0) {
+        c.innerHTML = `<div style="text-align:center; padding:40px; color:var(--text-muted);">データがありません</div>`; return;
+      }
+      sh.forEach((q, i) => c.appendChild(createCard(q, i+1)));
+    }
+
+    function loadWeaknessQuestions() {
+      const c = document.getElementById('weakness-questions-container');
+      c.innerHTML = '';
+      const wqs = appData.questions.filter(q => getStat(q.id) === 'wrong');
+      const sh = [...wqs].sort(()=>0.5-Math.random()).slice(0, 20);
+      if(sh.length===0) {
+        c.innerHTML = `<div style="text-align:center; padding:40px;"><h3 style="color:#10b981;">🎉 弱点問題はありません！</h3></div>`; return;
+      }
+      sh.forEach((q, i) => c.appendChild(createCard(q, i+1)));
+    }
+
+    function importData() {
+      const text = document.getElementById('import-textarea').value.trim();
+      if(!text) return alert("データが入力されていません。");
+      try {
+        const newData = JSON.parse(text);
+        if(!Array.isArray(newData)) throw new Error("配列ではありません");
+        newData.forEach(newItem => {
+          const idx = appData.questions.findIndex(q => q.id === newItem.id);
+          if(idx >= 0) appData.questions[idx] = newItem;
+          else appData.questions.push(newItem);
+        });
+        saveStorage();
+        document.getElementById('import-textarea').value = '';
+        alert(`${newData.length}件の問題を取り込みました！`);
+        switchTab('index');
+      } catch(e) { alert("データの形式が間違っています。\n" + e.message); }
+    }
+
+    function exportData() {
+      const textarea = document.getElementById('export-textarea');
+      textarea.value = JSON.stringify(appData, null, 2);
+      textarea.style.display = 'block';
+      textarea.select();
+      document.execCommand('copy');
+      alert("全学習データをクリップボードにコピーしました！メモ帳などに保存してください。");
+    }
+
+    function clearAllData() {
+      if(confirm("本当にすべての問題と学習履歴を削除しますか？\n（※復元する場合はバックアップが必要です）")) {
+        appData = { questions: [], status: {} };
+        saveStorage();
+        alert("リセットしました。");
+        switchTab('index');
+      }
+    }
+  </script>
+</body>
+</html>
