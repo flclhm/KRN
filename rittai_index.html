@@ -713,6 +713,90 @@
     }
 
     .hidden { display: none !important; }
+
+    /* ==========================================
+     * モバイル・Android 縦横レスポンシブ対応
+     * ========================================== */
+    @media (max-width: 900px) {
+      body, #app-container {
+        height: 100vh;
+        height: 100dvh;
+      }
+      .app-header {
+        height: auto;
+        padding: 8px 12px;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .header-logo .icon { font-size: 20px; }
+      .header-logo h1 { font-size: 16px; }
+      .header-logo h1 span, .header-info { display: none; }
+
+      .mode-switcher {
+        width: 100%;
+        justify-content: space-between;
+      }
+      .mode-btn {
+        flex: 1;
+        padding: 6px 4px;
+        font-size: 11px;
+        text-align: center;
+      }
+
+      .workspace {
+        flex-direction: column;
+      }
+      .canvas-container {
+        flex: none;
+        height: 44%;
+        min-height: 220px;
+        width: 100%;
+      }
+      .canvas-overlay {
+        top: 8px;
+        left: 10px;
+        right: 10px;
+      }
+      .tip-banner { display: none; }
+      .shape-badge { padding: 5px 10px; }
+      .shape-badge .label { font-size: 11px; }
+      .shape-badge .value { font-size: 14px; padding: 2px 8px; }
+
+      .slider-control-bar {
+        bottom: 8px;
+        padding: 6px 10px;
+        gap: 6px;
+        border-radius: 20px;
+        width: calc(100% - 16px);
+      }
+      .slider-control-bar label { font-size: 11px; }
+      .slider-control-bar input[type="range"] { width: 85px; }
+      .val-readout { font-size: 11px; min-width: 28px; }
+      .btn-subtle, .btn-play { padding: 4px 8px; font-size: 11px; }
+
+      .sidebar {
+        width: 100%;
+        flex: 1;
+        min-height: 0;
+        border-left: none;
+        border-top: 2px solid var(--border);
+      }
+      .quiz-category-bar { padding: 7px 10px; }
+      .quiz-cat-btn { padding: 5px 4px; font-size: 11px; }
+      .quiz-progress-row { padding: 6px 12px; font-size: 11px; }
+      .quiz-number-grid { padding: 7px 10px; gap: 3px; }
+      .q-num-pill { height: 24px; font-size: 10px; }
+      .quiz-body { padding: 10px 12px; gap: 9px; -webkit-overflow-scrolling: touch; }
+      .q-question-box { padding: 10px 12px; font-size: 13px; }
+      .q-choice-btn { padding: 9px 12px; font-size: 13px; }
+      .sidebar-footer { display: none; }
+    }
+
+    @media (max-width: 900px) and (orientation: landscape) {
+      .workspace { flex-direction: row; }
+      .canvas-container { height: 100%; flex: 1; width: auto; }
+      .sidebar { width: 52%; height: 100%; border-top: none; border-left: 2px solid var(--border); }
+    }
   </style>
 </head>
 <body>
@@ -732,7 +816,7 @@
       </div>
 
       <div class="header-info">
-        <span class="badge">v3.0 完成版</span>
+        <span class="badge">v3.1 モバイル対応</span>
       </div>
     </header>
 
@@ -1945,29 +2029,66 @@
         syncCanvasSize();
         window.addEventListener('resize', syncCanvasSize);
 
+        const activePointers = new Map();
+        let lastPinchDist = 0;
+
+        function getPinchDist() {
+          const pts = Array.from(activePointers.values());
+          const dx = pts[0].x - pts[1].x;
+          const dy = pts[0].y - pts[1].y;
+          return Math.sqrt(dx * dx + dy * dy);
+        }
+
         canvas.addEventListener('pointerdown', function (e) {
-          state.dragging = true;
-          state.lastPointer = { x: e.clientX, y: e.clientY };
+          activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
           if (canvas.setPointerCapture) { try { canvas.setPointerCapture(e.pointerId); } catch (_) {} }
+          if (activePointers.size === 1) {
+            state.dragging = true;
+            state.lastPointer = { x: e.clientX, y: e.clientY };
+          } else if (activePointers.size === 2) {
+            state.dragging = false;
+            lastPinchDist = getPinchDist();
+          }
         });
 
         canvas.addEventListener('pointermove', function (e) {
-          if (!state.dragging) return;
-          const dx = e.clientX - state.lastPointer.x, dy = e.clientY - state.lastPointer.y;
-          state.lastPointer = { x: e.clientX, y: e.clientY };
-          state.camera.yaw -= dx * 0.008;
-          state.camera.pitch += dy * 0.008;
-          const limit = Math.PI / 2 - 0.03;
-          state.camera.pitch = Math.max(-limit, Math.min(limit, state.camera.pitch));
+          if (!activePointers.has(e.pointerId)) return;
+          activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+          if (activePointers.size === 2) {
+            const dist = getPinchDist();
+            if (lastPinchDist > 0 && dist > 0) {
+              const scale = dist / lastPinchDist;
+              state.camera.zoom = Math.max(0.4, Math.min(2.4, state.camera.zoom * scale));
+            }
+            lastPinchDist = dist;
+          } else if (activePointers.size === 1 && state.dragging) {
+            const dx = e.clientX - state.lastPointer.x, dy = e.clientY - state.lastPointer.y;
+            state.lastPointer = { x: e.clientX, y: e.clientY };
+            state.camera.yaw -= dx * 0.008;
+            state.camera.pitch += dy * 0.008;
+            const limit = Math.PI / 2 - 0.03;
+            state.camera.pitch = Math.max(-limit, Math.min(limit, state.camera.pitch));
+          }
         });
 
-        canvas.addEventListener('pointerup', function (e) {
-          state.dragging = false;
+        function handlePointerEnd(e) {
+          activePointers.delete(e.pointerId);
           if (canvas.releasePointerCapture && canvas.hasPointerCapture && canvas.hasPointerCapture(e.pointerId)) {
             try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
           }
-        });
-        canvas.addEventListener('pointercancel', function () { state.dragging = false; });
+          if (activePointers.size < 2) lastPinchDist = 0;
+          if (activePointers.size === 1) {
+            const remaining = Array.from(activePointers.values())[0];
+            state.dragging = true;
+            state.lastPointer = { x: remaining.x, y: remaining.y };
+          } else if (activePointers.size === 0) {
+            state.dragging = false;
+          }
+        }
+
+        canvas.addEventListener('pointerup', handlePointerEnd);
+        canvas.addEventListener('pointercancel', handlePointerEnd);
 
         canvas.addEventListener('wheel', function (e) {
           e.preventDefault();
@@ -1991,9 +2112,12 @@
       function projectPoint(p, basis, width, height) {
         const rel = new Vec3().subVectors(p, basis.camPos);
         const cx = rel.dot(basis.right), cy = rel.dot(basis.up), cz = rel.dot(basis.forward);
-        const baseSize = Math.min(width, height), focal = baseSize * 1.1 * state.camera.zoom;
+        const baseSize = Math.min(width, height);
+        const isCompact = height < 360 || width < 550;
+        const focal = baseSize * (isCompact ? 1.02 : 1.1) * state.camera.zoom;
+        const centerY = isCompact ? height * 0.45 : height * 0.5;
         const depth = Math.max(0.5, cz);
-        return { x: width / 2 + (cx / depth) * focal, y: height / 2 - (cy / depth) * focal, depth: cz };
+        return { x: width / 2 + (cx / depth) * focal, y: centerY - (cy / depth) * focal, depth: cz };
       }
 
       function shadeColor(rgb, normal, lightDir, isCutFace, alpha) {
