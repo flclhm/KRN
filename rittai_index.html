@@ -1,0 +1,2925 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>立体算数ラボ - 中学受験 断面図＆展開図 40問＋3Dシミュレーター</title>
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --primary-light: #eff6ff;
+      --accent: #f59e0b;
+      --success: #10b981;
+      --danger: #ef4444;
+      --bg-main: #f8fafc;
+      --bg-card: #ffffff;
+      --border: #e2e8f0;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --radius-lg: 16px;
+      --radius-md: 10px;
+      --radius-sm: 6px;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Hiragino Maru Gothic ProN', 'Yu Gothic UI', 'Meiryo', sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    #app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* Header */
+    .app-header {
+      height: 60px;
+      background-color: #ffffff;
+      border-bottom: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      flex-shrink: 0;
+      box-shadow: var(--shadow-sm);
+      gap: 12px;
+    }
+
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .header-logo .icon { font-size: 24px; }
+    .header-logo h1 { font-size: 18px; font-weight: 800; color: #1e3a8a; }
+    .header-logo h1 span { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-left: 4px; }
+
+    .mode-switcher {
+      display: flex;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 12px;
+      gap: 4px;
+      border: 1px solid var(--border);
+      overflow-x: auto;
+    }
+
+    .mode-btn {
+      padding: 6px 13px;
+      border: none;
+      border-radius: 9px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--text-muted);
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .mode-btn:hover { color: var(--text-main); }
+    .mode-btn.active {
+      background: #ffffff;
+      color: var(--primary);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    }
+
+    .badge {
+      background: #e0f2fe;
+      color: #0369a1;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+
+    /* Workspace */
+    .workspace {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* Canvas Area */
+    .canvas-container {
+      flex: 1;
+      position: relative;
+      background: radial-gradient(circle at center, #f8fafc 0%, #dbeafe 100%);
+      overflow: hidden;
+      min-width: 0;
+      min-height: 0;
+    }
+
+    #scene-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+      touch-action: none;
+    }
+    #scene-canvas:active { cursor: grabbing; }
+
+    .canvas-overlay {
+      position: absolute;
+      top: 14px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      pointer-events: none;
+      z-index: 10;
+      gap: 10px;
+    }
+
+    .shape-badge {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 8px 16px;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      border: 2px solid #bfdbfe;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .shape-badge .label { font-size: 13px; color: var(--text-muted); font-weight: 700; }
+    .shape-badge .value {
+      font-size: 17px;
+      font-weight: 900;
+      color: #dc2626;
+      background: #fee2e2;
+      padding: 2px 10px;
+      border-radius: 8px;
+    }
+    .shape-badge .value.ok { color: #047857; background: #d1fae5; }
+    .shape-badge .value.ng { color: #b91c1c; background: #fee2e2; }
+    .shape-badge .value.quiz { color: #1d4ed8; background: #dbeafe; }
+
+    .tip-banner {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 7px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 700;
+      box-shadow: var(--shadow-sm);
+      pointer-events: auto;
+    }
+
+    .error-banner {
+      display: none;
+      position: absolute;
+      top: 70px;
+      left: 16px;
+      right: 16px;
+      background: #fef2f2;
+      border: 2px solid #ef4444;
+      color: #b91c1c;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      z-index: 30;
+    }
+
+    /* Bottom Control Bar */
+    .slider-control-bar {
+      position: absolute;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.96);
+      padding: 9px 16px;
+      border-radius: 30px;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 10;
+      border: 1px solid var(--border);
+      max-width: calc(100% - 28px);
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .slider-control-bar label { font-size: 12px; font-weight: 800; color: var(--text-main); white-space: nowrap; }
+    .slider-control-bar input[type="range"] { width: 125px; cursor: pointer; accent-color: var(--primary); }
+    .val-readout { font-size: 12px; font-weight: 800; color: var(--primary); min-width: 34px; text-align: center; }
+
+    .btn-subtle {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 16px;
+      padding: 5px 11px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      color: #475569;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .btn-subtle:hover { background: #e2e8f0; color: var(--text-main); }
+
+    .btn-play {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      border: none;
+      border-radius: 18px;
+      padding: 6px 13px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+      transition: all 0.2s;
+    }
+    .btn-play:hover { transform: translateY(-1px); }
+
+    /* Sidebar */
+    .sidebar {
+      width: 430px;
+      background: var(--bg-card);
+      border-left: 2px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      z-index: 20;
+    }
+
+    .sidebar-panel {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;
+    }
+    .sidebar-panel.active { display: flex; }
+
+    .tab-header {
+      display: flex;
+      background: #f1f5f9;
+      border-bottom: 2px solid var(--border);
+      padding: 6px 8px 0;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 9px 6px;
+      background: transparent;
+      border: none;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: 8px 8px 0 0;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .tab-btn.active {
+      background: var(--bg-card);
+      color: var(--primary);
+      box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.04);
+    }
+
+    .tab-content {
+      display: none;
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+    .tab-content.active { display: block; }
+
+    .section-title { font-size: 15px; font-weight: 900; color: #0f172a; margin-bottom: 10px; }
+    .section-subtitle { font-size: 12px; font-weight: 800; color: #475569; margin: 12px 0 8px; }
+    .section-desc { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5; }
+
+    /* Quiz Specific UI */
+    .quiz-category-bar {
+      display: flex;
+      gap: 6px;
+      padding: 10px 14px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .quiz-cat-btn {
+      flex: 1;
+      padding: 7px 6px;
+      border-radius: 8px;
+      border: 1.5px solid #cbd5e1;
+      background: #ffffff;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 800;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .quiz-cat-btn.active {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+
+    .quiz-progress-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 14px;
+      background: #ffffff;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .quiz-number-grid {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 4px;
+      padding: 10px 14px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .q-num-pill {
+      height: 26px;
+      border-radius: 6px;
+      border: 1.5px solid #cbd5e1;
+      background: #ffffff;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 800;
+      color: #475569;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .q-num-pill:hover { border-color: var(--primary); }
+    .q-num-pill.solved { background: #dcfce7; border-color: #22c55e; color: #15803d; }
+    .q-num-pill.wrong { background: #fee2e2; border-color: #f87171; color: #b91c1c; }
+    .q-num-pill.current {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #ffffff;
+      transform: scale(1.06);
+      box-shadow: 0 2px 6px rgba(59, 130, 246, 0.35);
+    }
+
+    .quiz-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .q-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .q-level-tag {
+      font-size: 11px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+    .lv1 { background: #d1fae5; color: #065f46; }
+    .lv2 { background: #fef3c7; color: #92400e; }
+    .lv3 { background: #fee2e2; color: #991b1b; }
+
+    .q-source-tag {
+      font-size: 11px;
+      font-weight: 700;
+      color: #475569;
+      background: #f1f5f9;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    .q-question-box {
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.65;
+      color: #0f172a;
+      user-select: text;
+    }
+
+    .q-choices {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .q-choice-btn {
+      padding: 11px 14px;
+      border-radius: var(--radius-md);
+      border: 2px solid #cbd5e1;
+      background: #ffffff;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 800;
+      color: #1e293b;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .q-choice-btn:hover:not(:disabled) {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      transform: translateX(2px);
+    }
+    .q-choice-btn:disabled { cursor: default; }
+
+    .q-choice-btn.correct {
+      border-color: #10b981;
+      background: #d1fae5;
+      color: #065f46;
+    }
+    .q-choice-btn.incorrect {
+      border-color: #ef4444;
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .choice-index {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #e2e8f0;
+      color: #334155;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 900;
+      flex-shrink: 0;
+    }
+    .q-choice-btn.correct .choice-index { background: #10b981; color: white; }
+    .q-choice-btn.incorrect .choice-index { background: #ef4444; color: white; }
+
+    .q-hint-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .q-hint-box {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: var(--radius-sm);
+      padding: 9px 12px;
+      font-size: 12px;
+      color: #1e40af;
+      line-height: 1.5;
+    }
+
+    .q-result-box {
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      border: 2px solid;
+    }
+    .q-result-box.win { background: #ecfdf5; border-color: #10b981; }
+    .q-result-box.lose { background: #fef2f2; border-color: #ef4444; }
+
+    .q-result-title { font-size: 15px; font-weight: 900; margin-bottom: 6px; }
+    .q-result-box.win .q-result-title { color: #047857; }
+    .q-result-box.lose .q-result-title { color: #b91c1c; }
+
+    .q-explain-text {
+      font-size: 12.5px;
+      line-height: 1.65;
+      color: #1e293b;
+      margin-bottom: 10px;
+      user-select: text;
+    }
+
+    .q-nav-row {
+      display: flex;
+      gap: 8px;
+      justify-content: space-between;
+    }
+
+    /* Preset Cards */
+    .preset-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .preset-card {
+      background: #f8fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: var(--radius-md);
+      padding: 9px 10px;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      font-family: inherit;
+    }
+    .preset-card:hover { border-color: #93c5fd; background: #eff6ff; transform: translateY(-1px); }
+    .preset-card.active {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+    .preset-card.ng-card:hover { border-color: #fca5a5; background: #fef2f2; }
+    .preset-card.ng-card.active {
+      border-color: #ef4444;
+      background: #fef2f2;
+      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+    }
+
+    .preset-name { font-size: 13px; font-weight: 800; color: #1e3a8a; }
+    .ng-card .preset-name { color: #b91c1c; }
+    .preset-desc { font-size: 11px; color: var(--text-muted); line-height: 1.3; }
+
+    .net-card-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+    .mini-grid { display: inline-grid; gap: 1px; flex-shrink: 0; }
+    .mini-cell { width: 6px; height: 6px; border-radius: 1px; }
+    .mini-cell.filled { background: #3b82f6; }
+    .ng-card .mini-cell.filled { background: #ef4444; }
+    .mini-cell.empty { background: transparent; }
+
+    .explain-box {
+      background: #fefce8;
+      border: 1px solid #fef08a;
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+    }
+    .explain-box h4 { font-size: 13px; color: #854d0e; font-weight: 800; margin-bottom: 6px; }
+    .explain-box p { font-size: 12px; color: #713f12; line-height: 1.6; }
+
+    .option-panel {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 700;
+      color: #334155;
+      cursor: pointer;
+    }
+    .toggle-row input { width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; }
+
+    /* Point Selectors & Forms */
+    .point-selectors, .form-card {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .selector-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .selector-row label { font-size: 12px; font-weight: 700; color: #334155; }
+
+    .point-select, .form-input, .form-textarea {
+      font-family: inherit;
+      font-size: 12.5px;
+      font-weight: 600;
+      padding: 7px 10px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: var(--radius-sm);
+      background: white;
+      width: 100%;
+    }
+    .point-select { width: 230px; font-weight: 700; cursor: pointer; }
+    .form-textarea { min-height: 80px; resize: vertical; user-select: text; }
+
+    .btn-primary {
+      width: 100%;
+      padding: 11px;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+      transition: all 0.2s;
+    }
+    .btn-primary:hover { transform: translateY(-1px); }
+
+    .hint-box {
+      margin-top: 12px;
+      font-size: 12px;
+      color: #475569;
+      background: #f1f5f9;
+      padding: 10px;
+      border-radius: var(--radius-sm);
+      line-height: 1.5;
+    }
+
+    .rule-card {
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin-bottom: 10px;
+    }
+    .rule-num {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 900;
+      background: #dbeafe;
+      color: #1e40af;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 5px;
+    }
+    .rule-card h4 { font-size: 13.5px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
+    .rule-card p { font-size: 12px; color: #475569; line-height: 1.55; }
+
+    .custom-q-item {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .sidebar-footer {
+      padding: 10px 14px;
+      border-top: 1px solid var(--border);
+      background: #f8fafc;
+      flex-shrink: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div id="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-logo">
+        <span class="icon">📐</span>
+        <h1>立体算数ラボ <span>〜中学受験 40問＋3D〜</span></h1>
+      </div>
+
+      <div class="mode-switcher">
+        <button class="mode-btn active" id="mode-btn-quiz">📝 問題に挑戦 (40問)</button>
+        <button class="mode-btn" id="mode-btn-cut">✂️ 自由切断ラボ</button>
+        <button class="mode-btn" id="mode-btn-net">📦 自由展開図ラボ</button>
+        <button class="mode-btn" id="mode-btn-add">➕ 問題を追加</button>
+      </div>
+
+      <div class="header-info">
+        <span class="badge">v3.0 完成版</span>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="workspace">
+      <!-- 3D Canvas Area -->
+      <div class="canvas-container" id="canvas-container">
+        <canvas id="scene-canvas"></canvas>
+        <div class="error-banner" id="error-banner"></div>
+
+        <!-- Floating HUD -->
+        <div class="canvas-overlay">
+          <div class="shape-badge" id="shape-badge">
+            <span class="label" id="badge-label">問題：</span>
+            <span class="value quiz" id="badge-value">断面図 Q1</span>
+          </div>
+          <div class="tip-banner">
+            💡 ドラッグで360°回転、ホイールで拡大・縮小
+          </div>
+        </div>
+
+        <!-- Bottom Bar: Cut / Cut Quiz -->
+        <div class="slider-control-bar" id="controls-cut">
+          <button id="btn-peek-cut" class="btn-subtle hidden">👀 切断面をチラ見</button>
+          <label for="separation-slider">分離：</label>
+          <input type="range" id="separation-slider" min="0" max="2.5" step="0.05" value="0">
+          <span class="val-readout" id="separation-value">0.0</span>
+          <button id="btn-toggle-part" class="btn-subtle">両方表示中</button>
+          <button id="btn-reset-view-cut" class="btn-subtle">視点リセット</button>
+        </div>
+
+        <!-- Bottom Bar: Net / Net Quiz -->
+        <div class="slider-control-bar hidden" id="controls-net">
+          <button id="btn-net-play" class="btn-play">▶ 組み立てる</button>
+          <label for="fold-slider">組み立て：</label>
+          <input type="range" id="fold-slider" min="0" max="100" step="1" value="0">
+          <span class="val-readout" id="fold-value">0%</span>
+          <button id="btn-net-topview" class="btn-subtle">真上から</button>
+          <button id="btn-reset-view-net" class="btn-subtle">斜め視点</button>
+        </div>
+      </div>
+
+      <!-- Control Sidebar -->
+      <aside class="sidebar">
+        <!-- ==============================
+             PANEL 1: 問題に挑戦（40問＋マイ問題）
+             ============================== -->
+        <div class="sidebar-panel active" id="panel-quiz">
+          <div class="quiz-category-bar">
+            <button class="quiz-cat-btn active" data-qcat="cut">✂️ 断面図 (20問)</button>
+            <button class="quiz-cat-btn" data-qcat="net">📦 展開図 (20問)</button>
+            <button class="quiz-cat-btn" data-qcat="custom">⭐ 追加 (<span id="custom-count">0</span>)</button>
+          </div>
+
+          <div class="quiz-progress-row">
+            <span id="quiz-score-text">正解数: 0 / 20</span>
+            <button id="btn-reset-progress" class="btn-subtle" style="padding:2px 8px; font-size:11px;">記録リセット</button>
+          </div>
+
+          <div class="quiz-number-grid" id="quiz-number-grid"></div>
+
+          <div class="quiz-body" id="quiz-body">
+            <div class="q-meta-row">
+              <span class="q-level-tag lv1" id="q-level-tag">★ 基本</span>
+              <span class="q-source-tag" id="q-source-tag">典型問題</span>
+            </div>
+
+            <div class="q-question-box" id="q-question-text">問題文を読み込み中...</div>
+
+            <div class="q-choices" id="q-choices-container"></div>
+
+            <div class="q-hint-row">
+              <button id="btn-show-hint" class="btn-subtle">💡 ヒントを見る</button>
+            </div>
+            <div class="q-hint-box hidden" id="q-hint-box"></div>
+
+            <div class="q-result-box hidden" id="q-result-box">
+              <div class="q-result-title" id="q-result-title"></div>
+              <div class="q-explain-text" id="q-explain-text"></div>
+              <div class="q-nav-row">
+                <button id="btn-q-prev" class="btn-subtle">⬅ 前の問題</button>
+                <button id="btn-q-next" class="btn-play">次の問題へ ➡</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==============================
+             PANEL 2: 自由切断ラボ
+             ============================== -->
+        <div class="sidebar-panel" id="panel-cut">
+          <div class="tab-header">
+            <button class="tab-btn active" data-panel="cut" data-tab="cut-presets">定番の切断</button>
+            <button class="tab-btn" data-panel="cut" data-tab="cut-custom">3点を選ぶ</button>
+            <button class="tab-btn" data-panel="cut" data-tab="cut-rules">切断の3大ルール</button>
+          </div>
+
+          <div class="tab-content active" id="tab-cut-presets">
+            <div class="section-title">中学受験で超頻出の切断パターン</div>
+            <div class="preset-grid">
+              <button class="preset-card" data-preset="equilateral_triangle">
+                <span class="preset-name">正三角形</span>
+                <span class="preset-desc">頂点 B, D, E</span>
+              </button>
+              <button class="preset-card" data-preset="isosceles_triangle">
+                <span class="preset-name">二等辺三角形</span>
+                <span class="preset-desc">頂点 D, B と 辺AE中点</span>
+              </button>
+              <button class="preset-card" data-preset="rectangle">
+                <span class="preset-name">長方形</span>
+                <span class="preset-desc">頂点 A, B と 辺CG中点</span>
+              </button>
+              <button class="preset-card" data-preset="trapezoid">
+                <span class="preset-name">等脚台形</span>
+                <span class="preset-desc">辺AD, AB中点と頂点F</span>
+              </button>
+              <button class="preset-card" data-preset="pentagon">
+                <span class="preset-name">五角形</span>
+                <span class="preset-desc">辺AB, AD, CG 中点</span>
+              </button>
+              <button class="preset-card active" data-preset="regular_hexagon">
+                <span class="preset-name">正六角形 🔥</span>
+                <span class="preset-desc">向かい合う6辺の中点</span>
+              </button>
+              <button class="preset-card" data-preset="rhombus">
+                <span class="preset-name">ひし形</span>
+                <span class="preset-desc">頂点B, H と 辺AE中点</span>
+              </button>
+            </div>
+            <div class="explain-box">
+              <h4>💡 解説ポイント</h4>
+              <p id="cut-explain-text"></p>
+            </div>
+          </div>
+
+          <div class="tab-content" id="tab-cut-custom">
+            <div class="section-title">3つの点を選んで切断してみよう</div>
+            <p class="section-desc">立方体の頂点・中点・3等分点の中から、切断する3点を選択してください。</p>
+            <div class="point-selectors">
+              <div class="selector-row"><label>1点目：</label><select id="point1-select" class="point-select"></select></div>
+              <div class="selector-row"><label>2点目：</label><select id="point2-select" class="point-select"></select></div>
+              <div class="selector-row"><label>3点目：</label><select id="point3-select" class="point-select"></select></div>
+            </div>
+            <button id="btn-apply-cut" class="btn-primary">この3点で切断！</button>
+            <div class="hint-box"><strong>🎯 コツ:</strong> 同じ直線上に並ぶ3点は平面が作れません。異なる3点を選んでね！</div>
+          </div>
+
+          <div class="tab-content" id="tab-cut-rules">
+            <div class="section-title">切断の超重要「3大ルール」</div>
+            <div class="rule-card">
+              <div class="rule-num">ルール 1</div>
+              <h4>同じ平面上にある2点は結ぶ！</h4>
+              <p>立方体の同じ面上にある2つの切断点は、直線で結ぶことができます。これが切り口の1つの辺になります。</p>
+            </div>
+            <div class="rule-card">
+              <div class="rule-num">ルール 2</div>
+              <h4>平行な面の切り口は必ず平行！</h4>
+              <p>向かい合う面（上面と下面、前と後、左と右）は平行なので、切り口の直線も必ず平行になります。</p>
+            </div>
+            <div class="rule-card">
+              <div class="rule-num">ルール 3</div>
+              <h4>線を伸ばして交点を見つける！</h4>
+              <p>切り口の線を立方体の外まで伸ばし、立方体の辺を伸ばした線との交点を作ることで、別の面の切断線が見えてきます。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==============================
+             PANEL 3: 自由展開図ラボ
+             ============================== -->
+        <div class="sidebar-panel" id="panel-net">
+          <div class="tab-header">
+            <button class="tab-btn active" data-panel="net" data-tab="net-presets">展開図全11種＋NG例</button>
+            <button class="tab-btn" data-panel="net" data-tab="net-rules">見分け方のコツ</button>
+          </div>
+
+          <div class="tab-content active" id="tab-net-presets">
+            <div class="option-panel">
+              <label class="toggle-row"><span>🎨 向かい合う面を同じ色で塗る</span><input type="checkbox" id="opt-pair-colors" checked></label>
+              <label class="toggle-row"><span>📍 重なる頂点番号（1〜8）を表示</span><input type="checkbox" id="opt-vertex-numbers" checked></label>
+              <label class="toggle-row"><span>👻 半透明にする（中の重なりを見る）</span><input type="checkbox" id="opt-net-translucent" checked></label>
+            </div>
+            <div class="section-subtitle">1-4-1型（基本・6種類）</div>
+            <div class="preset-grid" id="net-grid-141"></div>
+            <div class="section-subtitle">2-3-1型（頻出・3種類）</div>
+            <div class="preset-grid" id="net-grid-231"></div>
+            <div class="section-subtitle">2-2-2型 / 3-3型（応用・2種類）</div>
+            <div class="preset-grid" id="net-grid-other"></div>
+            <div class="section-subtitle">⚠️ 組み立てられない展開図（ひっかけ）</div>
+            <div class="preset-grid" id="net-grid-ng"></div>
+            <div class="explain-box">
+              <h4>💡 展開図のポイント</h4>
+              <p id="net-explain-text"></p>
+            </div>
+          </div>
+
+          <div class="tab-content" id="tab-net-rules">
+            <div class="section-title">展開図を見分ける3つのポイント</div>
+            <div class="rule-card">
+              <div class="rule-num">コツ 1</div>
+              <h4>「田の字」や「コの字」は絶対NG！</h4>
+              <p>正方形が4つ集まって「田」の形になっている展開図は、折り曲げると必ず面がぶつかって重なるため立方体になりません。</p>
+            </div>
+            <div class="rule-card">
+              <div class="rule-num">コツ 2</div>
+              <h4>向かい合う面は「1つとばし」か「Z型」</h4>
+              <p>同じ列に並ぶ面は1つとばしで向かい合います。また「Z」の字の両端にある面同士も必ず向かい合う面になります。</p>
+            </div>
+            <div class="rule-card">
+              <div class="rule-num">コツ 3</div>
+              <h4>重なる頂点は「90度回転・1つずつずらす」</h4>
+              <p>90度で隣り合う2つの辺は組み立てるとくっつきます。そこから1辺ずつ外側にずらしていくと、どの頂点が重なるか簡単に見つけられます。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==============================
+             PANEL 4: 問題を追加・拡張
+             ============================== -->
+        <div class="sidebar-panel" id="panel-add">
+          <div class="tab-header">
+            <button class="tab-btn active" data-panel="add" data-tab="add-json">JSONで一括追加</button>
+            <button class="tab-btn" data-panel="add" data-tab="add-form">1問フォーム作成</button>
+            <button class="tab-btn" data-panel="add" data-tab="add-list">追加済み一覧</button>
+          </div>
+
+          <div class="tab-content active" id="tab-add-json">
+            <div class="section-title">Web検索・AIで作った問題を取り込む</div>
+            <p class="section-desc">
+              新しい過去問を見つけたときは、下のJSONフォーマットにして貼り付けるだけで、3D解説付きの問題としてアプリに追加（自動保存）されます！
+            </p>
+            <div class="form-card">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <label style="font-size:12px; font-weight:800;">問題JSONデータ（配列または1件）</label>
+                <button id="btn-copy-template" class="btn-subtle" style="font-size:11px;">📋 テンプレート挿入</button>
+              </div>
+              <textarea id="json-import-area" class="form-textarea" style="min-height:160px; font-family:monospace; font-size:11px;" placeholder='[{"category":"cut", ...}]'></textarea>
+              <button id="btn-import-json" class="btn-primary">このJSONを取り込む！</button>
+            </div>
+            <div class="hint-box">
+              <strong>🤖 AIで問題を増やすコツ:</strong><br>
+              Webで見つけた過去問をコピーして「この問題を上のテンプレート形式のJSONに変換して」とAIに頼み、結果をここに貼るだけで無限に問題が増やせます！
+            </div>
+          </div>
+
+          <div class="tab-content" id="tab-add-form">
+            <div class="section-title">新しい断面図問題を1問作成</div>
+            <div class="form-card">
+              <div class="selector-row"><label>タイトル/出典:</label><input type="text" id="f-source" class="form-input" style="width:230px;" placeholder="例: ○○中 過去問"></div>
+              <div class="selector-row"><label>点1 (P):</label><select id="f-p1" class="point-select"></select></div>
+              <div class="selector-row"><label>点2 (Q):</label><select id="f-p2" class="point-select"></select></div>
+              <div class="selector-row"><label>点3 (R):</label><select id="f-p3" class="point-select"></select></div>
+              <div>
+                <label style="font-size:12px; font-weight:700;">問題文:</label>
+                <textarea id="f-question" class="form-textarea" placeholder="例: 点P, Q, Rを通る平面で切ったときの切り口の形は？"></textarea>
+              </div>
+              <div class="selector-row"><label>選択肢1:</label><input type="text" id="f-c0" class="form-input" style="width:230px;" placeholder="選択肢1"></div>
+              <div class="selector-row"><label>選択肢2:</label><input type="text" id="f-c1" class="form-input" style="width:230px;" placeholder="選択肢2"></div>
+              <div class="selector-row"><label>選択肢3:</label><input type="text" id="f-c2" class="form-input" style="width:230px;" placeholder="選択肢3"></div>
+              <div class="selector-row"><label>選択肢4:</label><input type="text" id="f-c3" class="form-input" style="width:230px;" placeholder="選択肢4"></div>
+              <div class="selector-row">
+                <label>正解の番号:</label>
+                <select id="f-ans" class="point-select">
+                  <option value="0">1番目</option><option value="1">2番目</option>
+                  <option value="2">3番目</option><option value="3">4番目</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:12px; font-weight:700;">解説:</label>
+                <textarea id="f-explain" class="form-textarea" placeholder="わかりやすい解説を入力"></textarea>
+              </div>
+              <button id="btn-add-single" class="btn-primary">この問題をマイ問題に追加！</button>
+            </div>
+          </div>
+
+          <div class="tab-content" id="tab-add-list">
+            <div class="section-title">追加済みのマイ問題一覧</div>
+            <div id="custom-questions-list"></div>
+            <div style="display:flex; gap:8px; margin-top:12px;">
+              <button id="btn-export-json" class="btn-subtle" style="flex:1;">📤 JSON書き出し（コピー）</button>
+              <button id="btn-clear-custom" class="btn-subtle" style="color:#dc2626;">🗑 全削除</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="sidebar-footer">
+          <span>中学受験 立体算数ラボ</span>
+          <span>データ自動保存対応 (Local)</span>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      function showError(msg) {
+        var el = document.getElementById('error-banner');
+        if (el) { el.style.display = 'block'; el.textContent = 'エラー: ' + msg; }
+      }
+      function hideError() {
+        var el = document.getElementById('error-banner');
+        if (el) { el.style.display = 'none'; el.textContent = ''; }
+      }
+      window.addEventListener('error', function (e) { showError(e.message || String(e)); });
+
+      /* ==========================================
+       * 1. 共通 3D ベクトル演算
+       * ========================================== */
+      class Vec3 {
+        constructor(x = 0, y = 0, z = 0) { this.x = x; this.y = y; this.z = z; }
+        clone() { return new Vec3(this.x, this.y, this.z); }
+        copy(v) { this.x = v.x; this.y = v.y; this.z = v.z; return this; }
+        add(v) { this.x += v.x; this.y += v.y; this.z += v.z; return this; }
+        sub(v) { this.x -= v.x; this.y -= v.y; this.z -= v.z; return this; }
+        multiplyScalar(s) { this.x *= s; this.y *= s; this.z *= s; return this; }
+        divideScalar(s) { if (s !== 0) { this.x /= s; this.y /= s; this.z /= s; } return this; }
+        dot(v) { return this.x * v.x + this.y * v.y + this.z * v.z; }
+        lengthSq() { return this.x * this.x + this.y * this.y + this.z * this.z; }
+        length() { return Math.sqrt(this.lengthSq()); }
+        normalize() { const l = this.length(); if (l > 0) this.divideScalar(l); return this; }
+        distanceTo(v) { const dx = this.x - v.x, dy = this.y - v.y, dz = this.z - v.z; return Math.sqrt(dx*dx + dy*dy + dz*dz); }
+        addVectors(a, b) { this.x = a.x + b.x; this.y = a.y + b.y; this.z = a.z + b.z; return this; }
+        subVectors(a, b) { this.x = a.x - b.x; this.y = a.y - b.y; this.z = a.z - b.z; return this; }
+        crossVectors(a, b) {
+          const ax=a.x, ay=a.y, az=a.z, bx=b.x, by=b.y, bz=b.z;
+          this.x = ay*bz - az*by; this.y = az*bx - ax*bz; this.z = ax*by - ay*bx; return this;
+        }
+        lerpVectors(a, b, t) {
+          this.x = a.x + (b.x - a.x)*t; this.y = a.y + (b.y - a.y)*t; this.z = a.z + (b.z - a.z)*t; return this;
+        }
+      }
+
+      /* ==========================================
+       * 2. 立体切断エンジン
+       * ========================================== */
+      const VERTICES = {
+        A: new Vec3(-1,  1, -1), B: new Vec3( 1,  1, -1),
+        C: new Vec3( 1,  1,  1), D: new Vec3(-1,  1,  1),
+        E: new Vec3(-1, -1, -1), F: new Vec3( 1, -1, -1),
+        G: new Vec3( 1, -1,  1), H: new Vec3(-1, -1,  1)
+      };
+
+      const EDGES = [
+        { name: 'AB', v1: 'A', v2: 'B' }, { name: 'BC', v1: 'B', v2: 'C' },
+        { name: 'CD', v1: 'C', v2: 'D' }, { name: 'DA', v1: 'D', v2: 'A' },
+        { name: 'EF', v1: 'E', v2: 'F' }, { name: 'FG', v1: 'F', v2: 'G' },
+        { name: 'GH', v1: 'G', v2: 'H' }, { name: 'HE', v1: 'H', v2: 'E' },
+        { name: 'AE', v1: 'A', v2: 'E' }, { name: 'BF', v1: 'B', v2: 'F' },
+        { name: 'CG', v1: 'C', v2: 'G' }, { name: 'DH', v1: 'D', v2: 'H' }
+      ];
+
+      const FACES = [
+        { name: 'Top',    vertices: ['A', 'D', 'C', 'B'], normal: new Vec3( 0,  1,  0) },
+        { name: 'Bottom', vertices: ['E', 'F', 'G', 'H'], normal: new Vec3( 0, -1,  0) },
+        { name: 'Front',  vertices: ['D', 'H', 'G', 'C'], normal: new Vec3( 0,  0,  1) },
+        { name: 'Back',   vertices: ['B', 'F', 'E', 'A'], normal: new Vec3( 0,  0, -1) },
+        { name: 'Left',   vertices: ['A', 'E', 'H', 'D'], normal: new Vec3(-1,  0,  0) },
+        { name: 'Right',  vertices: ['C', 'G', 'F', 'B'], normal: new Vec3( 1,  0,  0) }
+      ];
+
+      // 選択肢用（頂点＋中点＋3等分点）
+      const SELECTABLE_POINTS = [];
+      for (const [key, v] of Object.entries(VERTICES)) {
+        SELECTABLE_POINTS.push({ id: key, label: '頂点 ' + key, pos: v.clone(), group: 'vertex' });
+      }
+      for (const edge of EDGES) {
+        const p1 = VERTICES[edge.v1], p2 = VERTICES[edge.v2];
+        const disp = edge.name === 'DA' ? 'AD' : edge.name === 'HE' ? 'EH' : edge.name;
+        SELECTABLE_POINTS.push({
+          id: 'M_' + edge.name,
+          label: '辺' + disp + 'の中点 (1:1)',
+          pos: new Vec3().lerpVectors(p1, p2, 0.5),
+          group: 'mid'
+        });
+        SELECTABLE_POINTS.push({
+          id: 'T1_' + edge.name,
+          label: '辺' + disp + ' (' + edge.v1 + 'から1:2)',
+          pos: new Vec3().lerpVectors(p1, p2, 1 / 3),
+          group: 'third'
+        });
+        SELECTABLE_POINTS.push({
+          id: 'T2_' + edge.name,
+          label: '辺' + disp + ' (' + edge.v1 + 'から2:1)',
+          pos: new Vec3().lerpVectors(p1, p2, 2 / 3),
+          group: 'third'
+        });
+      }
+
+      // 汎用点スペック解決：{ vertex: 'A' } / { edge: 'AB', ratio: 0.5, label: 'P' } / 文字列ID
+      function resolvePointSpec(spec) {
+        if (typeof spec === 'string') {
+          let found = SELECTABLE_POINTS.find(function (p) { return p.id === spec; });
+          if (!found && spec.indexOf('_') > 0) {
+            const parts = spec.split('_');
+            const prefix = parts[0], eName = parts[1];
+            if (eName && eName.length === 2) {
+              const rev = eName.charAt(1) + eName.charAt(0);
+              if (prefix === 'M') found = SELECTABLE_POINTS.find(function (p) { return p.id === 'M_' + rev; });
+              else if (prefix === 'T1') found = SELECTABLE_POINTS.find(function (p) { return p.id === 'T2_' + rev; });
+              else if (prefix === 'T2') found = SELECTABLE_POINTS.find(function (p) { return p.id === 'T1_' + rev; });
+            }
+          }
+          return found ? { pos: found.pos.clone(), label: found.id.length === 1 ? found.id : '' } : null;
+        }
+        if (spec && spec.vertex && VERTICES[spec.vertex]) {
+          return { pos: VERTICES[spec.vertex].clone(), label: spec.label || spec.vertex };
+        }
+        if (spec && spec.edge && spec.edge.length === 2) {
+          const v1 = VERTICES[spec.edge.charAt(0)];
+          const v2 = VERTICES[spec.edge.charAt(1)];
+          if (v1 && v2) {
+            return {
+              pos: new Vec3().lerpVectors(v1, v2, spec.ratio),
+              label: spec.label || ''
+            };
+          }
+        }
+        return null;
+      }
+
+      function getPointById(id) {
+        const res = resolvePointSpec(id);
+        return res ? res.pos : null;
+      }
+
+      function createPlaneFromThreePoints(p1, p2, p3) {
+        const v1 = new Vec3().subVectors(p2, p1);
+        const v2 = new Vec3().subVectors(p3, p1);
+        const normal = new Vec3().crossVectors(v1, v2);
+        if (normal.lengthSq() < 1e-6) return null;
+        normal.normalize();
+        return { normal: normal, d: normal.dot(p1) };
+      }
+
+      function addUniquePoint(arr, p, eps) {
+        for (const existing of arr) { if (existing.distanceTo(p) < eps) return; }
+        arr.push(p.clone());
+      }
+
+      function computeCrossSectionPolygon(plane) {
+        const normal = plane.normal, d = plane.d, points = [], eps = 1e-4;
+        for (const edge of EDGES) {
+          const v1 = VERTICES[edge.v1], v2 = VERTICES[edge.v2];
+          const d1 = normal.dot(v1) - d, d2 = normal.dot(v2) - d;
+          if (Math.abs(d1) < eps) addUniquePoint(points, v1, eps);
+          if (Math.abs(d2) < eps) addUniquePoint(points, v2, eps);
+          if ((d1 > eps && d2 < -eps) || (d1 < -eps && d2 > eps)) {
+            const t = -d1 / (d2 - d1);
+            addUniquePoint(points, new Vec3().lerpVectors(v1, v2, t), eps);
+          }
+        }
+        if (points.length < 3) return null;
+        const centroid = new Vec3();
+        for (const p of points) centroid.add(p);
+        centroid.divideScalar(points.length);
+        const arbitrary = Math.abs(normal.y) < 0.9 ? new Vec3(0, 1, 0) : new Vec3(1, 0, 0);
+        const u = new Vec3().crossVectors(arbitrary, normal).normalize();
+        const v = new Vec3().crossVectors(normal, u).normalize();
+        points.sort(function (a, b) {
+          const da = new Vec3().subVectors(a, centroid);
+          const db = new Vec3().subVectors(b, centroid);
+          return Math.atan2(da.dot(v), da.dot(u)) - Math.atan2(db.dot(v), db.dot(u));
+        });
+        return points;
+      }
+
+      function identifyCutShape(points) {
+        if (!points || points.length < 3) return '切断なし';
+        const n = points.length, edgeLengths = [];
+        for (let i = 0; i < n; i++) edgeLengths.push(points[i].distanceTo(points[(i + 1) % n]));
+        const eps = 0.05;
+        const allEdgesEqual = edgeLengths.every(function (len) { return Math.abs(len - edgeLengths[0]) < eps; });
+
+        if (n === 3) {
+          if (allEdgesEqual) return '正三角形';
+          const e0 = edgeLengths[0], e1 = edgeLengths[1], e2 = edgeLengths[2];
+          if (Math.abs(e0 - e1) < eps || Math.abs(e1 - e2) < eps || Math.abs(e2 - e0) < eps) return '二等辺三角形';
+          return '不等辺三角形';
+        } else if (n === 4) {
+          const diag1 = points[0].distanceTo(points[2]), diag2 = points[1].distanceTo(points[3]);
+          const isRightAngle = Math.abs(diag1 - diag2) < eps;
+          if (allEdgesEqual && isRightAngle) return '正方形';
+          if (allEdgesEqual) return 'ひし形';
+          const v01 = new Vec3().subVectors(points[1], points[0]).normalize();
+          const v32 = new Vec3().subVectors(points[2], points[3]).normalize();
+          const v12 = new Vec3().subVectors(points[2], points[1]).normalize();
+          const v03 = new Vec3().subVectors(points[3], points[0]).normalize();
+          const p1 = Math.abs(Math.abs(v01.dot(v32)) - 1) < 0.02;
+          const p2 = Math.abs(Math.abs(v12.dot(v03)) - 1) < 0.02;
+          if (p1 && p2) return isRightAngle ? '長方形' : '平行四辺形';
+          if (p1 || p2) return Math.abs(diag1 - diag2) < eps ? '等脚台形' : '台形';
+          return '四角形';
+        } else if (n === 5) return '五角形';
+        else if (n === 6) return allEdgesEqual ? '正六角形' : '六角形';
+        return n + '角形';
+      }
+
+      function clipPolygonWithPlane(polygonPoints, plane, keepPositive) {
+        const normal = plane.normal, d = plane.d, sign = keepPositive ? 1 : -1, eps = 1e-4;
+        const output = [], n = polygonPoints.length;
+        if (n === 0) return output;
+        for (let i = 0; i < n; i++) {
+          const cur = polygonPoints[i], next = polygonPoints[(i + 1) % n];
+          const dCur = sign * (normal.dot(cur) - d), dNext = sign * (normal.dot(next) - d);
+          if (dCur >= -eps) output.push(cur.clone());
+          if ((dCur > eps && dNext < -eps) || (dCur < -eps && dNext > eps)) {
+            const t = dCur / (dCur - dNext);
+            output.push(new Vec3().lerpVectors(cur, next, t));
+          }
+        }
+        const cleaned = [];
+        for (let i = 0; i < output.length; i++) {
+          const p = output[i];
+          if (cleaned.length === 0 || cleaned[cleaned.length - 1].distanceTo(p) > eps) cleaned.push(p);
+        }
+        if (cleaned.length > 2 && cleaned[0].distanceTo(cleaned[cleaned.length - 1]) < eps) cleaned.pop();
+        return cleaned.length >= 3 ? cleaned : [];
+      }
+
+      function sliceCube(plane) {
+        const crossSection = computeCrossSectionPolygon(plane);
+        if (!crossSection) return null;
+        const facesA = [], facesB = [];
+        for (const face of FACES) {
+          const facePoints = face.vertices.map(function (vKey) { return VERTICES[vKey]; });
+          const clippedA = clipPolygonWithPlane(facePoints, plane, true);
+          const clippedB = clipPolygonWithPlane(facePoints, plane, false);
+          if (clippedA.length >= 3) facesA.push({ points: clippedA, normal: face.normal.clone(), isCutFace: false });
+          if (clippedB.length >= 3) facesB.push({ points: clippedB, normal: face.normal.clone(), isCutFace: false });
+        }
+        facesA.push({
+          points: crossSection.slice().reverse().map(function (p) { return p.clone(); }),
+          normal: plane.normal.clone().multiplyScalar(-1),
+          isCutFace: true
+        });
+        facesB.push({
+          points: crossSection.map(function (p) { return p.clone(); }),
+          normal: plane.normal.clone(),
+          isCutFace: true
+        });
+        return { crossSection: crossSection, shapeName: identifyCutShape(crossSection), facesA: facesA, facesB: facesB, plane: plane };
+      }
+
+      const CUT_PRESETS = {
+        equilateral_triangle: {
+          name: '正三角形', points: [VERTICES.B, VERTICES.D, VERTICES.E], pointKeys: ['B', 'D', 'E'],
+          explanation: '頂点Aを切り落とす、中学受験で最も基本の切断です。3つの面の対角線で切断されるため「正三角形」になります。'
+        },
+        isosceles_triangle: {
+          name: '二等辺三角形', points: [VERTICES.D, VERTICES.B, getPointById('M_AE')], pointKeys: ['D', 'B', 'M_AE'],
+          explanation: '底面の対角線BDと、辺AEの中点を通る切断です。対称性から2辺が等しくなり「二等辺三角形」が現れます。'
+        },
+        rectangle: {
+          name: '長方形', points: [VERTICES.A, VERTICES.B, getPointById('M_CG')], pointKeys: ['A', 'B', 'M_CG'],
+          explanation: '上の辺ABを通り、手前の面の中点を通るように斜めに切断したパターンです。4つの角が90°になり「長方形」が現れます。'
+        },
+        trapezoid: {
+          name: '等脚台形', points: [getPointById('M_DA'), getPointById('M_AB'), VERTICES.F], pointKeys: ['M_DA', 'M_AB', 'F'],
+          explanation: '「平行な面の切り口は必ず平行になる」というルールにより、上面の線と下面の線が平行になり「等脚台形」になります。'
+        },
+        pentagon: {
+          name: '五角形', points: [getPointById('M_AB'), getPointById('M_DA'), getPointById('M_CG')], pointKeys: ['M_AB', 'M_DA', 'M_CG'],
+          explanation: '切断平面が立方体の5つの面を通過するため「五角形」になります。'
+        },
+        regular_hexagon: {
+          name: '正六角形', points: [getPointById('M_AB'), getPointById('M_BC'), getPointById('M_CG')], pointKeys: ['M_AB', 'M_BC', 'M_CG'],
+          explanation: '向かい合う6本の辺の中点をすべて通るように切ると、美しい「正六角形」が現れます。'
+        },
+        rhombus: {
+          name: 'ひし形', points: [VERTICES.B, VERTICES.H, getPointById('M_AE')], pointKeys: ['B', 'H', 'M_AE'],
+          explanation: '対角線BHと、辺AE・CGの中点を通るように切断したパターンです。4つの辺がすべて等しい「ひし形」になります。'
+        }
+      };
+
+      /* ==========================================
+       * 3. 展開図パタパタエンジン
+       * ========================================== */
+      const NET_PRESETS = [
+        { id: 'n141_1', group: '141', name: '十字型 (基本)', desc: '1-4-1型 ①', valid: true, grid: ['.ア..', 'イウエオ', '.カ..'],
+          explanation: '一番有名な十字型の展開図です。横4つ「イ・ウ・エ・オ」が側面になり、「ア」と「カ」が上下のフタと底になります。' },
+        { id: 'n141_2', group: '141', name: 'T字ずらし', desc: '1-4-1型 ②', valid: true, grid: ['ア...', 'イウエオ', '.カ..'],
+          explanation: '上の「ア」が左にずれても、ぐるっと巻いた「イウエオ」のフタとしてピタッと閉まります。' },
+        { id: 'n141_3', group: '141', name: '交互型', desc: '1-4-1型 ③', valid: true, grid: ['ア...', 'イウエオ', '..カ.'],
+          explanation: '「ア」と「カ」が反対側にずれた1-4-1型です。折り曲げると「ア」と「カ」が向かい合います。' },
+        { id: 'n141_4', group: '141', name: '両端型', desc: '1-4-1型 ④', valid: true, grid: ['ア...', 'イウエオ', '...カ'],
+          explanation: '「ア」と「カ」が一番離れていても、ぐるっと一周する間に向かい合う面にたどり着きます。' },
+        { id: 'n141_5', group: '141', name: '中央ずらし', desc: '1-4-1型 ⑤', valid: true, grid: ['.ア..', 'イウエオ', '..カ.'],
+          explanation: '1つずつずれた1-4-1型です。入試でも非常によく出題されます。' },
+        { id: 'n141_6', group: '141', name: '片寄せ型', desc: '1-4-1型 ⑥', valid: true, grid: ['ア...', 'イウエオ', 'カ...'],
+          explanation: '左端に上下の面が寄った形です。同じ列の「ア」と「カ」が1つとばしで向かい合います。' },
+        { id: 'n231_1', group: '231', name: '2-3-1型 A', desc: 'テスト頻出 ①', valid: true, grid: ['アイ..', '.ウエオ', '.カ..'],
+          explanation: '中学受験で超頻出の2-3-1型。「ア」がくるっと回って左の側面になり、「ア」と「エ」が向かい合います。' },
+        { id: 'n231_2', group: '231', name: '2-3-1型 B', desc: 'テスト頻出 ②', valid: true, grid: ['アイ..', '.ウエオ', '..カ.'],
+          explanation: '下の「カ」が1つ右にずれた2-3-1型。「イ」と「カ」がZ型になって向かい合います。' },
+        { id: 'n231_3', group: '231', name: '2-3-1型 C', desc: 'テスト頻出 ③', valid: true, grid: ['アイ..', '.ウエオ', '...カ'],
+          explanation: '端っこにある「カ」が折れてどう底面（または側面）になるかアニメーションで確認しよう！' },
+        { id: 'n222', group: 'other', name: '2-2-2型 (階段)', desc: 'ジグザグ階段', valid: true, grid: ['アイ..', '.ウエ.', '..オカ'],
+          explanation: '段々になっている2-2-2型です。直角にパタパタ折れて見事な立方体になります。' },
+        { id: 'n33', group: 'other', name: '3-3型', desc: '2段ずれ型', valid: true, grid: ['アイウ..', '..エオカ'],
+          explanation: '3つずつ2段に並んだ3-3型。11種の中で最も立体をイメージしにくい最頻出パターンです！' },
+        { id: 'ng_ta', group: 'ng', name: '「田」の字型 ❌', desc: '面が重なるNG例', valid: false, grid: ['アイ..', 'ウエオ.', '..カ.'],
+          explanation: '「ア・イ・ウ・エ」が2×2の「田」の字を作っているため、折ると面同士が重なり立方体になりません。' },
+        { id: 'ng_same_side', group: 'ng', name: '同じ側に2つ ❌', desc: 'フタが2重になるNG例', valid: false, grid: ['ア.イ.', 'ウエオカ'],
+          explanation: '4つの側面の同じ側に2つの面「ア」「イ」があるため、フタが2重になって反対側が空いてしまいます。' }
+      ];
+
+      const AXIS_PAIR_COLORS = { y: [59, 130, 246], x: [249, 115, 22], z: [16, 185, 129] };
+      const DISTINCT_COLORS = [[59, 130, 246], [249, 115, 22], [16, 185, 129], [168, 85, 247], [236, 72, 153], [234, 179, 8]];
+      const VERTEX_NUM_COLORS = ['#ef4444', '#2563eb', '#059669', '#d97706', '#7c3aed', '#db2777', '#0891b2', '#4f46e5'];
+
+      function buildNetTreeFromGrid(grid, validFlag) {
+        const cells = [], cellMap = {};
+        for (let r = 0; r < grid.length; r++) {
+          const rowStr = grid[r];
+          for (let c = 0; c < rowStr.length; c++) {
+            const ch = rowStr.charAt(c);
+            if (ch !== '.' && ch !== ' ') {
+              const node = {
+                id: ch, row: r, col: c, index: cells.length,
+                parent: null, dirFromParent: null, children: [],
+                axisColor: AXIS_PAIR_COLORS.y,
+                distinctColor: DISTINCT_COLORS[cells.length % DISTINCT_COLORS.length],
+                cornerVertexIds: [0, 0, 0, 0]
+              };
+              cells.push(node);
+              cellMap[r + ',' + c] = node;
+            }
+          }
+        }
+        let root = cells[0], bestScore = Infinity, avgR = 0, avgC = 0;
+        for (const cell of cells) { avgR += cell.row; avgC += cell.col; }
+        avgR /= cells.length; avgC /= cells.length;
+        for (const cell of cells) {
+          const d = Math.abs(cell.row - avgR) + Math.abs(cell.col - avgC);
+          if (d < bestScore) { bestScore = d; root = cell; }
+        }
+        const visited = new Set([root.id]), queue = [root];
+        const dirs = [{ dr: -1, dc: 0, name: 'N' }, { dr: 1, dc: 0, name: 'S' }, { dr: 0, dc: 1, name: 'E' }, { dr: 0, dc: -1, name: 'W' }];
+        while (queue.length > 0) {
+          const cur = queue.shift();
+          for (const d of dirs) {
+            const nb = cellMap[(cur.row + d.dr) + ',' + (cur.col + d.dc)];
+            if (nb && !visited.has(nb.id)) {
+              visited.add(nb.id); nb.parent = cur; nb.dirFromParent = d.name;
+              cur.children.push(nb); queue.push(nb);
+            }
+          }
+        }
+
+        const foldedData = computeFoldedPositions(cells, root, 1.0);
+        const normalBuckets = new Set();
+        for (let i = 0; i < cells.length; i++) {
+          const n = foldedData.normals[i];
+          const ax = Math.abs(n.x), ay = Math.abs(n.y), az = Math.abs(n.z);
+          if (ay >= ax && ay >= az) cells[i].axisColor = AXIS_PAIR_COLORS.y;
+          else if (ax >= ay && ax >= az) cells[i].axisColor = AXIS_PAIR_COLORS.x;
+          else cells[i].axisColor = AXIS_PAIR_COLORS.z;
+          const c = foldedData.centers[i];
+          normalBuckets.add(Math.round(c.x * 10) + ',' + Math.round(c.y * 10) + ',' + Math.round(c.z * 10));
+        }
+        const hasOverlap = normalBuckets.size < cells.length;
+
+        const vertexHashToId = {};
+        let nextVertexNum = 1;
+        for (let i = 0; i < cells.length; i++) {
+          const corners = foldedData.cornersList[i];
+          for (let k = 0; k < 4; k++) {
+            const p = corners[k];
+            const vKey = Math.round(p.x * 20) + ',' + Math.round(p.y * 20) + ',' + Math.round(p.z * 20);
+            if (!vertexHashToId[vKey]) vertexHashToId[vKey] = nextVertexNum++;
+            cells[i].cornerVertexIds[k] = vertexHashToId[vKey];
+          }
+        }
+        return { preset: { valid: validFlag !== false }, cells: cells, root: root, hasOverlap: hasOverlap };
+      }
+
+      function transformNetPoint(localVec, node, foldFactor) {
+        const S = 1.45, h = S / 2, theta = foldFactor * (Math.PI / 2);
+        const cosT = Math.cos(theta), sinT = Math.sin(theta);
+        let curVec = localVec.clone(), curNode = node;
+        while (curNode.parent !== null) {
+          const dir = curNode.dirFromParent;
+          let x = curVec.x, y = curVec.y, z = curVec.z;
+          if (dir === 'E') {
+            const dx = x + h; curVec.x = h + dx * cosT - y * sinT; curVec.y = dx * sinT + y * cosT; curVec.z = z;
+          } else if (dir === 'W') {
+            const dx = x - h; curVec.x = -h + dx * cosT + y * sinT; curVec.y = -dx * sinT + y * cosT; curVec.z = z;
+          } else if (dir === 'S') {
+            const dz = z + h; curVec.x = x; curVec.y = dz * sinT + y * cosT; curVec.z = h + dz * cosT - y * sinT;
+          } else if (dir === 'N') {
+            const dz = z - h; curVec.x = x; curVec.y = -dz * sinT + y * cosT; curVec.z = -h + dz * cosT + y * sinT;
+          }
+          curNode = curNode.parent;
+        }
+        return curVec;
+      }
+
+      function computeFoldedPositions(cells, root, foldFactor) {
+        const S = 1.45, h = S / 2;
+        const localCorners = [new Vec3(-h, 0, -h), new Vec3(h, 0, -h), new Vec3(h, 0, h), new Vec3(-h, 0, h)];
+        const localCenter = new Vec3(0, 0, 0), localNormalTip = new Vec3(0, 1, 0);
+        const cornersList = [], centers = [], normals = [];
+        let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity, sumY = 0;
+
+        for (const cell of cells) {
+          const wCorners = localCorners.map(function (lc) { return transformNetPoint(lc, cell, foldFactor); });
+          const wCenter = transformNetPoint(localCenter, cell, foldFactor);
+          const wNormalTip = transformNetPoint(localNormalTip, cell, foldFactor);
+          const wNormal = new Vec3().subVectors(wNormalTip, wCenter).normalize();
+          cornersList.push(wCorners); centers.push(wCenter); normals.push(wNormal);
+          for (const p of wCorners) {
+            if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
+            if (p.z < minZ) minZ = p.z; if (p.z > maxZ) maxZ = p.z;
+          }
+          sumY += wCenter.y;
+        }
+        const shift = new Vec3(-(minX + maxX) / 2, -(sumY / cells.length), -(minZ + maxZ) / 2);
+        for (let i = 0; i < cells.length; i++) {
+          centers[i].add(shift);
+          for (const p of cornersList[i]) p.add(shift);
+        }
+        return { cornersList: cornersList, centers: centers, normals: normals };
+      }
+
+      /* ==========================================
+       * 4. 中学受験 過去問ベース40問データ（断面20＋展開20）
+       * ========================================== */
+      const CUT_QUIZ_DATA = [
+        // Lv1: 基本 (6問)
+        {
+          id: 'cq01', category: 'cut', level: 1, source: '基本・定番入試問題',
+          points: [{ vertex: 'B', label: 'B' }, { vertex: 'D', label: 'D' }, { vertex: 'E', label: 'E' }],
+          question: '立方体の3つの頂点 B, D, E を通る平面で切ったとき、切り口はどんな形になりますか？',
+          choices: ['正三角形', '二等辺三角形', '直角三角形', '正方形'],
+          answerIndex: 0,
+          hint: '切り口の3つの辺 BD, DE, EB は、どれも同じ大きさの正方形の対角線になっています。',
+          explanation: '切り口となる線分 BD, DE, EB は、すべて立方体の面の対角線なので長さがすべて等しくなります。よって切り口は「正三角形」になります！'
+        },
+        {
+          id: 'cq02', category: 'cut', level: 1, source: '基本・体積比の王道',
+          points: [{ vertex: 'B', label: 'B' }, { vertex: 'D', label: 'D' }, { vertex: 'E', label: 'E' }],
+          question: '頂点 B, D, E を通る平面で切ったとき、頂点 A をふくむ小さい方の立体の体積は、元の立方体の何分の1ですか？',
+          choices: ['1/3', '1/4', '1/6', '1/8'],
+          answerIndex: 2,
+          hint: '頂点Aをふくむ立体は「三角すい」です。底面を三角形ABD（正方形の半分）、高さをAEとして計算しよう！',
+          explanation: '三角すいの体積＝「底面積 × 高さ ÷ 3」です。底面の三角形ABDは元の正方形の 1/2、高さは 1 なので、体積は (1/2) × 1 ÷ 3 ＝「1/6」になります。'
+        },
+        {
+          id: 'cq03', category: 'cut', level: 1, source: '基本・切り口の形状',
+          points: [{ vertex: 'D', label: 'D' }, { vertex: 'B', label: 'B' }, { edge: 'AE', ratio: 0.5, label: 'P' }],
+          question: '頂点 D, B と、辺 AE の真ん中の点 P を通る平面で切ったとき、切り口はどんな形になりますか？',
+          choices: ['正三角形', '二等辺三角形', '長方形', '台形'],
+          answerIndex: 1,
+          hint: '切り口の辺 DP と BP の長さを比べてみよう！どちらも「1辺」と「半分の辺」の直角三角形の斜辺です。',
+          explanation: 'BDは正方形の対角線、DPとBPはどちらも「たて1・横0.5」の直角三角形の斜辺なので同じ長さになります。2つの辺が等しいので「二等辺三角形」です。'
+        },
+        {
+          id: 'cq04', category: 'cut', level: 1, source: '基本・斜め切断',
+          points: [{ vertex: 'A', label: 'A' }, { vertex: 'B', label: 'B' }, { edge: 'CG', ratio: 0.5, label: 'P' }],
+          question: '頂点 A, B と、辺 CG の真ん中の点 P を通る平面で切ったとき、切り口はどんな形になりますか？',
+          choices: ['正方形', '長方形', 'ひし形', '平行四辺形'],
+          answerIndex: 1,
+          hint: '上の辺 AB と、手前の面の中点どうし（Pと辺DHの中点）を結ぶと、4つの角はすべて90度になります。',
+          explanation: '辺ABと平行な線が手前の面にも引けるため、辺ABに垂直な方向に斜めに切れます。4つの角が90°で、たてと横の長さが違うので「長方形」になります。'
+        },
+        {
+          id: 'cq05', category: 'cut', level: 1, source: '基本・垂直切断',
+          points: [{ edge: 'AB', ratio: 0.5, label: 'P' }, { edge: 'CD', ratio: 0.5, label: 'Q' }, { edge: 'EF', ratio: 0.5, label: 'R' }],
+          question: '辺 AB, CD, EF のそれぞれ真ん中の点 P, Q, R を通る平面で切ったとき、切り口はどんな形になりますか？',
+          choices: ['正方形', '長方形（正方形でない）', 'ひし形', '等脚台形'],
+          answerIndex: 0,
+          hint: '立方体を真上からまっすぐ垂直に真っ二つに切ります。切り口の辺の長さはすべて立方体の1辺と同じです！',
+          explanation: '立方体を面に平行にまっすぐ切るため、切り口は元の面とまったく同じ合同な「正方形」になります。'
+        },
+        {
+          id: 'cq06', category: 'cut', level: 1, source: '超頻出・王道問題',
+          points: [{ edge: 'AB', ratio: 0.5, label: 'P' }, { edge: 'BC', ratio: 0.5, label: 'Q' }, { edge: 'CG', ratio: 0.5, label: 'R' }],
+          question: '辺 AB, BC, CG のそれぞれ真ん中の点 P, Q, R を通る平面で切ったとき、切り口はどんな形になりますか？',
+          choices: ['五角形', '正方形', '正六角形', 'ひし形'],
+          answerIndex: 2,
+          hint: '「向かい合う面の切り口は平行」ルールを使うと、残りの3つの辺の中点もすべて通ることがわかります！',
+          explanation: '上面のPQ（中点どうし）と平行な線が下面（GH, HEの中点）にも現れ、残りの2つの中点（AEの中点）も通ります。6つの辺がすべて等しく「正六角形」になります！'
+        },
+
+        // Lv2: 標準・頻出過去問ベース (8問)
+        {
+          id: 'cq07', category: 'cut', level: 2, source: '中堅〜難関校 定番',
+          points: [{ edge: 'DA', ratio: 0.5, label: 'P' }, { edge: 'AB', ratio: 0.5, label: 'Q' }, { vertex: 'F', label: 'F' }],
+          question: '辺 AD の中点 P、辺 AB の中点 Q、頂点 F を通る平面で切ったとき、切り口はどんな形になりますか？',
+          choices: ['正方形', 'ひし形', '等脚台形', '五角形'],
+          answerIndex: 2,
+          hint: '上面のPQに平行で、下の頂点Fを通る線を下面に引いてみよう！すると頂点Hも通ります。',
+          explanation: '「平行な面の切り口は平行」より、下面では点Fを通りPQに平行な対角線FHが切り口になります。PQとFHが平行で、左右の辺PFとQHの長さが等しいため「等脚台形」になります。'
+        },
+        {
+          id: 'cq08', category: 'cut', level: 2, source: '頻出・五角形切断',
+          points: [{ edge: 'AB', ratio: 0.5, label: 'P' }, { edge: 'DA', ratio: 0.5, label: 'Q' }, { edge: 'CG', ratio: 0.5, label: 'R' }],
+          question: '辺 AB, AD, CG のそれぞれ真ん中の点 P, Q, R を通る平面で切ったとき、切り口は何角形になりますか？',
+          choices: ['三角形', '四角形', '五角形', '六角形'],
+          answerIndex: 2,
+          hint: 'PQの線を左右に伸ばして、立方体の辺の延長と交点を作り、点Rと結んでみよう！下面までは届きません。',
+          explanation: '平面が立方体の「上面・右面・前面・左面・背面」の5つの面を通過し、下面とは交わりません。よって切り口は「五角形」になります。'
+        },
+        {
+          id: 'cq09', category: 'cut', level: 2, source: '難関校 頻出形',
+          points: [{ vertex: 'B', label: 'B' }, { vertex: 'H', label: 'H' }, { edge: 'AE', ratio: 0.5, label: 'P' }],
+          question: '頂点 B, H と、辺 AE の真ん中の点 P を通る平面で切ったとき、切り口はどんな形になりますか？',
+          choices: ['正方形', '長方形（正方形でない）', 'ひし形', '平行四辺形（ひし形でなく長方形でもない）'],
+          answerIndex: 2,
+          hint: '対称性から、向かい合う辺 CG の真ん中も通ります。4つの辺の長さは等しくなりますが、対角線BHとP-CG中点の長さは？',
+          explanation: '4つの辺はすべて「1辺と半分の辺」の直角三角形の斜辺で長さが等しくなります。しかし対角線BHは立方体の対角線、もう一方の対角線は正方形の対角線なので長さが異なり「ひし形」になります。'
+        },
+        {
+          id: 'cq10', category: 'cut', level: 2, source: '体積比・基本応用',
+          points: [{ edge: 'AB', ratio: 0.5, label: 'P' }, { edge: 'DA', ratio: 0.5, label: 'Q' }, { edge: 'AE', ratio: 0.5, label: 'R' }],
+          question: '辺 AB, AD, AE のそれぞれ真ん中の点 P, Q, R を通る平面で切ったとき、頂点 A をふくむ小さい三角すいの体積は元の立方体の何分の1ですか？',
+          choices: ['1/12', '1/24', '1/36', '1/48'],
+          answerIndex: 3,
+          hint: '3つの辺（AP, AQ, AR）すべてが元の立方体の 1/2 の長さになっています！',
+          explanation: '底面の三角形APQの面積は (1/2) × (1/2) ÷ 2 ＝ 1/8。高さARは 1/2。三角すいなので、体積は (1/8) × (1/2) ÷ 3 ＝「1/48」になります。（基本の1/6の立体の 1/8倍 でも計算できます！）'
+        },
+        {
+          id: 'cq11', category: 'cut', level: 2, source: '三角柱の体積問題',
+          points: [{ edge: 'AB', ratio: 0.5, label: 'P' }, { edge: 'BC', ratio: 0.5, label: 'Q' }, { edge: 'EF', ratio: 0.5, label: 'R' }],
+          question: '辺 AB, BC, EF のそれぞれ真ん中の点 P, Q, R を通る平面で切ったとき、頂点 B をふくむ小さい方の立体の体積は元の立方体の何分の1ですか？',
+          choices: ['1/4', '1/6', '1/8', '1/12'],
+          answerIndex: 2,
+          hint: 'この立体は三角すいではなく、上下が同じ形の「三角柱」になっています！',
+          explanation: '底面の直角二等辺三角形PBQの面積は (1/2) × (1/2) ÷ 2 ＝ 1/8。そのまま垂直に下まで続く高さ1の「三角柱」なので、体積は (1/8) × 1 ＝「1/8」です！（÷3 をしないように注意！）'
+        },
+        {
+          id: 'cq12', category: 'cut', level: 2, source: '正六角形と体積',
+          points: [{ edge: 'AB', ratio: 0.5, label: 'P' }, { edge: 'BC', ratio: 0.5, label: 'Q' }, { edge: 'CG', ratio: 0.5, label: 'R' }],
+          question: '切り口が「正六角形」になるように切断したとき、頂点 D をふくむ側の立体の体積は元の立方体の何分の1ですか？',
+          choices: ['1/2', '1/3', '3/8', '5/12'],
+          answerIndex: 0,
+          hint: 'この切断面は立方体のちょうど真ん中（中心）を通っています！',
+          explanation: '6つの辺の中点を通る正六角形の切断面は、立方体をぴったり対称に2等分します。よって体積は「1/2」になります。'
+        },
+        {
+          id: 'cq13', category: 'cut', level: 2, source: '横向き三角柱の体積',
+          points: [{ vertex: 'A', label: 'A' }, { vertex: 'B', label: 'B' }, { edge: 'CG', ratio: 0.5, label: 'P' }],
+          question: '頂点 A, B と辺 CG の真ん中の点 P を通る平面で切ったとき、頂点 C, D をふくむ上側の小さい立体の体積は元の立方体の何分の1ですか？',
+          choices: ['1/2', '1/3', '1/4', '1/6'],
+          answerIndex: 2,
+          hint: '左や右の面から横向きに見てみよう！横たわった「三角柱」の形をしています。',
+          explanation: '右側面（BCGF）の直角三角形BCPを底面と見ると、面積は 1 × (1/2) ÷ 2 ＝ 1/4。これが横幅1で奥の辺ADまでまっすぐ続いている三角柱なので、体積は「1/4」になります。'
+        },
+        {
+          id: 'cq14', category: 'cut', level: 2, source: '比率を使った三角すい',
+          points: [{ edge: 'AB', ratio: 0.5, label: 'P' }, { edge: 'DA', ratio: 1/3, label: 'Q' }, { vertex: 'E', label: 'E' }],
+          question: '辺 AB の中点 P、辺 AD を「Aから 2:1」に分ける点 Q、頂点 E を通る平面で切ったとき、頂点 A をふくむ三角すいの体積は元の立方体の何分の1ですか？',
+          choices: ['1/9', '1/12', '1/18', '1/24'],
+          answerIndex: 2,
+          hint: 'AP = 1/2、AQ = 2/3、AE = 1 です。三角すいの公式にあてはめよう！',
+          explanation: '底面積（△APQ）＝ (1/2) × (2/3) ÷ 2 ＝ 1/6。高さAE＝1の三角すいなので、(1/6) × 1 ÷ 3 ＝「1/18」になります！'
+        },
+
+        // Lv3: 応用・難関中学過去問ベース (6問)
+        {
+          id: 'cq15', category: 'cut', level: 3, source: '難関校 切断形状',
+          points: [{ edge: 'AB', ratio: 0.5, label: 'P' }, { edge: 'DA', ratio: 2/3, label: 'Q' }, { edge: 'CG', ratio: 0.5, label: 'R' }],
+          question: '辺 AB の中点 P、辺 AD を「Aから 1:2」に分ける点 Q、辺 CG の中点 R を通る平面で切ったとき、切り口は何角形になりますか？',
+          choices: ['四角形', '五角形', '六角形', '七角形'],
+          answerIndex: 1,
+          hint: 'PQを延長して辺BC・CDの延長と交点を作り、点Rと結んで右側面・前面の切り口を探してみよう。下面には届くかな？',
+          explanation: '右の辺BF（上から1/8）、左奥の辺DH（上から1/4）を通り、下面には到達せずに手前と奥をつなぎます。合計5つの面を通るため「五角形」になります。'
+        },
+        {
+          id: 'cq16', category: 'cut', level: 3, source: '難関校・対称性の見抜き',
+          points: [{ vertex: 'A', label: 'A' }, { edge: 'BF', ratio: 0.5, label: 'P' }, { edge: 'DH', ratio: 0.5, label: 'Q' }],
+          question: '頂点 A、辺 BF の中点 P、辺 DH の中点 Q を通る平面で切ったとき、上側の立体の体積は元の立方体の何分の1ですか？',
+          choices: ['1/2', '3/8', '5/12', '7/16'],
+          answerIndex: 0,
+          hint: '向かい合う面の切り口の平行性から、実は下の頂点 G も通ります！立体全体の対称性に注目！',
+          explanation: 'この切断面は点A、点P、点G、点Qを通る「ひし形」になり、立方体の中心（重心）を通過します。上下の立体はぴったり合同な形になるため、体積は「1/2」になります！'
+        },
+        {
+          id: 'cq17', category: 'cut', level: 3, source: '御三家 超定番（三角すい台）',
+          points: [{ edge: 'DA', ratio: 0.5, label: 'P' }, { edge: 'AB', ratio: 0.5, label: 'Q' }, { vertex: 'F', label: 'F' }],
+          question: '辺 AD の中点 P、辺 AB の中点 Q、頂点 F を通る平面で切ったとき、頂点 E をふくむ小さい方の立体の体積は元の立方体の何分の1ですか？',
+          choices: ['1/4', '7/24', '5/16', '1/3'],
+          answerIndex: 1,
+          hint: '辺AE、FP、HQを上に伸ばして「大きな三角すい」を作り、はみ出た「上の小さな三角すい（相似比1:2）」を引こう！',
+          explanation: '延長すると高さ2の大きな三角すい（体積 = 1/2 × 2 ÷ 3 = 1/3）ができます。上の小さな三角すいは相似比 1:2 なので体積比は 1:8（体積 1/24）。よって 1/3 − 1/24 ＝「7/24」になります！'
+        },
+        {
+          id: 'cq18', category: 'cut', level: 3, source: '難関校（相似比 2:3 の三角すい台）',
+          points: [{ edge: 'AB', ratio: 2/3, label: 'P' }, { edge: 'DA', ratio: 1/3, label: 'Q' }, { vertex: 'F', label: 'F' }],
+          question: '辺 AB, AD をそれぞれ「Aから 2:1」に分ける点 P, Q と、頂点 F を通る平面で切ったとき、頂点 E をふくむ側の体積は元の立方体の何分の1ですか？',
+          choices: ['19/54', '11/27', '1/3', '7/18'],
+          answerIndex: 0,
+          hint: 'AP : EF = 2 : 3 なので、上に伸ばした大きな三角すいの高さは「3」になります！',
+          explanation: '相似比が 2 : 3 より高さは 3。大きな三角すいの体積は (1/2)×3÷3 ＝ 1/2。上の小さな三角すいは体積比が (2/3)³ ＝ 8/27 なので体積 4/27。よって 1/2 − 4/27 ＝「19/54」です！'
+        },
+        {
+          id: 'cq19', category: 'cut', level: 3, source: '難関校（平行ルール応用）',
+          points: [{ vertex: 'A', label: 'A' }, { edge: 'BF', ratio: 0.5, label: 'P' }, { edge: 'CD', ratio: 0.5, label: 'Q' }],
+          question: '頂点 A、辺 BF の中点 P、辺 CD の中点 Q を通る平面で切ったとき、切り口はどんな形になりますか？',
+          choices: ['正方形', 'ひし形', '等脚台形', '等脚台形ではない台形'],
+          answerIndex: 3,
+          hint: '向かい合う「奥の面」と「手前の面」を通るため1組の辺が平行になりますが、左右の長さの比に注目しよう！',
+          explanation: '奥の面の線APと、手前の面の線（QとCGの1/4点を結ぶ線）が平行で長さの比が 2:1 になります。もう1組の対辺は平行にならず、脚の長さも異なるため「等脚台形ではない台形」になります。'
+        },
+        {
+          id: 'cq20', category: 'cut', level: 3, source: '最難関校レベル（総仕上げ）',
+          points: [{ edge: 'AB', ratio: 0.5, label: 'P' }, { edge: 'DA', ratio: 0.5, label: 'Q' }, { edge: 'CG', ratio: 0.5, label: 'R' }],
+          question: '辺 AB, AD, CG の真ん中の点 P, Q, R を通る平面（五角形）で切ったとき、頂点 C をふくむ小さい方の立体の体積は元の立方体の何分の1ですか？',
+          choices: ['25/144', '1/6', '3/16', '7/36'],
+          answerIndex: 0,
+          hint: '頂点Cから3方向に伸ばした「大きな三角すい（各辺 3/2, 1/2, 3/2）」から、手前左と奥右にはみ出た2つの小さな三角すいを引きます！',
+          explanation: '大きな三角すいの体積は (1/6)×(3/2)×(1/2)×(3/2) ＝ 3/16。B側とD側に相似比 1/3（体積比 1/27）の小三角すいが2つはみ出ているので、3/16 − (3/16 × 1/27)×2 ＝ 3/16 − 2/144 ＝「25/144」になります！'
+        }
+      ];
+
+      // 展開図20問データ（全問 3D位置関係と整合）
+      const NET_QUIZ_DATA = [
+        // Lv1: 基本 (6問)
+        {
+          id: 'nq01', category: 'net', level: 1, source: '基本・十字型',
+          quizType: 'opposite', grid: ['.ア..', 'イウエオ', '.カ..'], targetCell: 'ア',
+          question: '左の展開図を組み立てて立方体を作ったとき、面「ア」と向かい合う面はどれですか？',
+          choices: ['イ', 'ウ', 'オ', 'カ'], answerIndex: 3,
+          hint: '同じたての列（ア・ウ・カ）に注目！1つとばしの位置が向かい合います。',
+          explanation: '「イ・ウ・エ・オ」を側面にぐるっと巻いたとき、上の「ア」と下の「カ」が上下のフタと底として向かい合います。'
+        },
+        {
+          id: 'nq02', category: 'net', level: 1, source: '基本・1つとばし',
+          quizType: 'opposite', grid: ['.ア..', 'イウエオ', '.カ..'], targetCell: 'イ',
+          question: 'この展開図を組み立てたとき、面「イ」と向かい合う面はどれですか？',
+          choices: ['ア', 'ウ', 'エ', 'オ'], answerIndex: 2,
+          hint: '横一列に並ぶ「イ・ウ・エ・オ」の中で、1つとばした隣を探そう！',
+          explanation: '一直線に並んだ面は「1つとばし」が向かい合う面になります。「イ」から「ウ」を1つとばした「エ」が向かい合います。'
+        },
+        {
+          id: 'nq03', category: 'net', level: 1, source: '基本・成立判定',
+          quizType: 'valid', grid: ['ア...', 'イウエオ', '...カ'],
+          question: '左の展開図を折り曲げて、すき間なく正しい立方体を作ることはできますか？',
+          choices: ['作ることができる', 'フタの面が重なって作れない', '側面が足りなくて作れない', '辺がねじれて作れない'], answerIndex: 0,
+          hint: '「イ・ウ・エ・オ」の4つが側面になり、上側に1つ「ア」、下側に1つ「カ」が付いています！',
+          explanation: '典型的な「1-4-1型」の展開図なので、正しく組み立てて立方体を作ることができます！'
+        },
+        {
+          id: 'nq04', category: 'net', level: 1, source: '基本・NG見分け',
+          quizType: 'valid', grid: ['アイ..', 'ウエオ.', '..カ.'],
+          question: '左の展開図を折り曲げて立方体を作ろうとすると、どうなりますか？',
+          choices: ['正しく立方体ができる', '面がぶつかって重なり作れない', '頂点が1つ余ってしまう', '三角柱になってしまう'], answerIndex: 1,
+          hint: '「ア・イ・ウ・エ」が 2×2 の「田」の字の形になっているところに注目！',
+          explanation: '正方形が「田」の形に4つ集まっていると、3つの面で1つの角を作ったあとに4つ目の面がぶつかって重なるため、立方体になりません！'
+        },
+        {
+          id: 'nq05', category: 'net', level: 1, source: '重なる頂点・基本①',
+          quizType: 'vertex', grid: ['.ア..', 'イウエオ', '.カ..'],
+          targetCorner: { cell: 'ア', corner: 0 }, // ★
+          choiceCorners: [
+            { label: 'あ', cell: 'イ', corner: 0 }, // 正解 (-h, 2h, -h)
+            { label: 'い', cell: 'エ', corner: 1 },
+            { label: 'う', cell: 'オ', corner: 2 },
+            { label: 'え', cell: 'カ', corner: 3 }
+          ],
+          question: '展開図を組み立てて立方体を作ったとき、「★」の角とぴったり重なる角（あ〜え）はどれですか？',
+          choices: ['あ', 'い', 'う', 'え'], answerIndex: 0,
+          hint: '「ア」の左側の辺と、「イ」の上側の辺が90°でくっつきます。1つ外側にずらしてみよう！',
+          explanation: 'アの左下とイの右上がくっつくので、その1つ外側の角どうしである「★」と「あ（イの左上）」が重なります！（さらにオの右上とも重なります）'
+        },
+        {
+          id: 'nq06', category: 'net', level: 1, source: '重なる頂点・基本②',
+          quizType: 'vertex', grid: ['.ア..', 'イウエオ', '.カ..'],
+          targetCorner: { cell: 'カ', corner: 2 }, // ★
+          choiceCorners: [
+            { label: 'あ', cell: 'ア', corner: 1 },
+            { label: 'い', cell: 'イ', corner: 3 },
+            { label: 'う', cell: 'エ', corner: 2 }, // 正解 (+h, 2h, +h)
+            { label: 'え', cell: 'オ', corner: 1 }
+          ],
+          question: '展開図を組み立てたとき、「★」の角とぴったり重なる角（あ〜え）はどれですか？',
+          choices: ['あ', 'い', 'う', 'え'], answerIndex: 2,
+          hint: '「カ」の右側の辺と、「エ」の下側の辺が90°でぴったりくっつきます！',
+          explanation: 'カの右上とエの左下がくっつき、その1つ外側の「★」と「う（エの右下）」がぴったり重なります！'
+        },
+
+        // Lv2: 標準 (8問)
+        {
+          id: 'nq07', category: 'net', level: 2, source: '1-4-1型 応用',
+          quizType: 'opposite', grid: ['ア...', 'イウエオ', '..カ.'], targetCell: 'ア',
+          question: '左の展開図を組み立てたとき、面「ア」と向かい合う面はどれですか？',
+          choices: ['ウ', 'エ', 'オ', 'カ'], answerIndex: 3,
+          hint: '「イ・ウ・エ・オ」を側面として丸めたとき、上の面と下の面になるのはどれ？',
+          explanation: '「ア」と「カ」が上下に分かれて付いている1-4-1型なので、横にずれていても「ア」と「カ」が向かい合います。'
+        },
+        {
+          id: 'nq08', category: 'net', level: 2, source: '2-3-1型 基本',
+          quizType: 'opposite', grid: ['アイ..', '.ウエオ', '.カ..'], targetCell: 'イ',
+          question: '中学受験で超頻出の「2-3-1型」です。面「イ」と向かい合う面はどれですか？',
+          choices: ['ア', 'ウ', 'オ', 'カ'], answerIndex: 3,
+          hint: 'たて一列の「イ・ウ・カ」に注目すると、1つとばしの関係が見えてきます！',
+          explanation: '「イ」と「カ」は「ウ」をはさんで1つとばしの関係にあるため、必ず向かい合います。'
+        },
+        {
+          id: 'nq09', category: 'net', level: 2, source: '2-3-1型 対面②',
+          quizType: 'opposite', grid: ['アイ..', '.ウエオ', '.カ..'], targetCell: 'ア',
+          question: 'この2-3-1型の展開図を組み立てたとき、左上の面「ア」と向かい合う面はどれですか？',
+          choices: ['ウ', 'エ', 'オ', 'カ'], answerIndex: 1,
+          hint: '「ア・イ・ウ・エ」の4つを「Zの字」でつないでみよう！Zの両端が向かい合います。',
+          explanation: '「ア」と「エ」は Z型 の両端に位置するため、組み立てると左右の側面としてぴったり向かい合います！'
+        },
+        {
+          id: 'nq10', category: 'net', level: 2, source: '2-3-1型 対面③',
+          quizType: 'opposite', grid: ['アイ..', '.ウエオ', '..カ.'], targetCell: 'ウ',
+          question: 'この展開図を組み立てたとき、面「ウ」と向かい合う面はどれですか？',
+          choices: ['ア', 'イ', 'オ', 'カ'], answerIndex: 2,
+          hint: '横並びの「ウ・エ・オ」で1つとばしを見よう！',
+          explanation: '一直線に並んだ「ウ・エ・オ」の1つとばしなので、「ウ」と「オ」が向かい合います。'
+        },
+        {
+          id: 'nq11', category: 'net', level: 2, source: '2-2-2型（階段型）',
+          quizType: 'opposite', grid: ['アイ..', '.ウエ.', '..オカ'], targetCell: 'ア',
+          question: '階段のような「2-2-2型」です。面「ア」と向かい合う面はどれですか？',
+          choices: ['ウ', 'エ', 'オ', 'カ'], answerIndex: 1,
+          hint: '「ア・イ・ウ・エ」の4つで「Zの字」を探してみよう！',
+          explanation: 'ア→イ→ウ→エ が Z型 になっているため、「ア」と「エ」が向かい合います！（ちなみに「イ⇔オ」「ウ⇔カ」が向かい合います）'
+        },
+        {
+          id: 'nq12', category: 'net', level: 2, source: '3-3型（最重要）',
+          quizType: 'opposite', grid: ['アイウ..', '..エオカ'], targetCell: 'ア',
+          question: 'とても出題されやすい「3-3型」です。面「ア」と向かい合う面はどれですか？',
+          choices: ['ウ', 'エ', 'オ', 'カ'], answerIndex: 0,
+          hint: '上の段の「ア・イ・ウ」が一直線に並んでいます！1つとばしのルールが使えます。',
+          explanation: '「ア・イ・ウ」は同じ列に並んでいるので1つとばしで「ア」と「ウ」が向かい合います！（ちなみに「イ⇔オ」「エ⇔カ」が対面です）'
+        },
+        {
+          id: 'nq13', category: 'net', level: 2, source: 'ひっかけ判定',
+          quizType: 'valid', grid: ['ア.イ.', 'ウエオカ'],
+          question: 'この展開図を組み立てるとどうなりますか？',
+          choices: ['正しく立方体ができる', 'アとイが同じ場所に重なって作れない', '6面のうち1面だけ残る', '直方体になる'], answerIndex: 1,
+          hint: '「ウ・エ・オ・カ」をくるっと巻いたとき、「ア」と「イ」はどちらも上のフタ側についています！',
+          explanation: '同じ側（上側）に2つの面「ア」「イ」が付いているため、上のフタが2重になり、底が空いたままになってしまいます。'
+        },
+        {
+          id: 'nq14', category: 'net', level: 2, source: '2-3-1型 重なる頂点',
+          quizType: 'vertex', grid: ['アイ..', '.ウエオ', '..カ.'],
+          targetCorner: { cell: 'ア', corner: 0 }, // ★ (-h, 2h, +h)
+          choiceCorners: [
+            { label: 'あ', cell: 'イ', corner: 0 },
+            { label: 'い', cell: 'エ', corner: 1 },
+            { label: 'う', cell: 'オ', corner: 2 }, // 正解 (-h, 2h, +h)
+            { label: 'え', cell: 'カ', corner: 3 }
+          ],
+          question: '2-3-1型の展開図を組み立てたとき、「★」の角とぴったり重なる角（あ〜え）はどれですか？',
+          choices: ['あ', 'い', 'う', 'え'], answerIndex: 2,
+          hint: 'アの面が奥から左側面へと折れ曲がり、オの面は右側面を通って上のフタになります！',
+          explanation: 'アが左側面の手前上（★）になり、オの右下の角「う」が上のフタの左手前まで回ってきてぴったり重なります！'
+        },
+
+        // Lv3: 応用・難関中学過去問ベース (6問)
+        {
+          id: 'nq15', category: 'net', level: 3, source: '難関校 2-2-2型 頂点',
+          quizType: 'vertex', grid: ['アイ..', '.ウエ.', '..オカ'],
+          targetCorner: { cell: 'ア', corner: 0 }, // ★ (-h, 2h, +h)
+          choiceCorners: [
+            { label: 'あ', cell: 'イ', corner: 1 },
+            { label: 'い', cell: 'オ', corner: 2 }, // 正解 (-h, 2h, +h)
+            { label: 'う', cell: 'オ', corner: 3 },
+            { label: 'え', cell: 'カ', corner: 1 }
+          ],
+          question: '階段型の展開図（2-2-2型）を組み立てたとき、「★」の角と重なる角（あ〜え）はどれですか？',
+          choices: ['あ', 'い', 'う', 'え'], answerIndex: 1,
+          hint: 'ウを底面として固定すると、イ→アで左側面、エ→オで前面に回ってきます。',
+          explanation: '左側面となるアの手前上の角「★」と、前面となるオの右上の角「い」が、組み立てた立方体の左手前上で重なります！'
+        },
+        {
+          id: 'nq16', category: 'net', level: 3, source: '難関校 3-3型 頂点',
+          quizType: 'vertex', grid: ['アイウ..', '..エオカ'],
+          targetCorner: { cell: 'ア', corner: 0 }, // ★ (+h, 2h, -h)
+          choiceCorners: [
+            { label: 'あ', cell: 'ウ', corner: 1 },
+            { label: 'い', cell: 'エ', corner: 3 },
+            { label: 'う', cell: 'オ', corner: 1 },
+            { label: 'え', cell: 'カ', corner: 3 } // 正解 (+h, 2h, -h)
+          ],
+          question: '3-3型の展開図を組み立てたとき、「★」の角と重なる角（あ〜え）はどれですか？',
+          choices: ['あ', 'い', 'う', 'え'], answerIndex: 3,
+          hint: 'ウを底とすると、イが左、アが天（上）になります。一方、エが前、オが右、カが後ろの面に回ります！',
+          explanation: '上面となるアの右奥「★」と、後面となるカの右上（展開図では左下に見える「え」）が、右奥上の頂点でぴったり重なります！'
+        },
+        {
+          id: 'nq17', category: 'net', level: 3, source: 'サイコロの目・入試定番',
+          quizType: 'opposite', grid: ['ア...', 'イウエオ', '..カ.'], targetCell: 'ア',
+          question: 'サイコロの展開図で、向かい合う面の目の和がすべて 7 になるように数字を入れます。ア＝1、イ＝2、ウ＝3 のとき、面「カ」に入る数字はいくつですか？',
+          choices: ['4', '5', '6', '2'], answerIndex: 2,
+          hint: 'まず「ア」と向かい合う面がどれかを探そう！1 の反対側はいくつ？',
+          explanation: '「ア」と「カ」が向かい合う面になります。向かい合う目の和が 7 なので、カ ＝ 7 − 1 ＝「6」になります！'
+        },
+        {
+          id: 'nq18', category: 'net', level: 3, source: 'サイコロの目・Z型応用',
+          quizType: 'opposite', grid: ['アイ..', '.ウエオ', '...カ'], targetCell: 'ア',
+          question: '向かい合う目の和がすべて 7 のサイコロを作ります。ア＝2、イ＝3、ウ＝1 のとき、面「エ」に入る数字はいくつですか？',
+          choices: ['4', '5', '6', '3'], answerIndex: 1,
+          hint: '面「エ」と向かい合う面はどれでしょう？「ア・イ・ウ・エ」のZ型に注目！',
+          explanation: 'Z型より「ア」と「エ」が向かい合います。ア＝2 なので、エ ＝ 7 − 2 ＝「5」になります！（ちなみに カ＝4、オ＝6 になります）'
+        },
+        {
+          id: 'nq19', category: 'net', level: 3, source: '難関校・1-4-1ずらし頂点',
+          quizType: 'vertex', grid: ['.ア..', 'イウエオ', '..カ.'],
+          targetCorner: { cell: 'カ', corner: 2 }, // ★ (-h, 2h, +h)
+          choiceCorners: [
+            { label: 'あ', cell: 'ア', corner: 0 },
+            { label: 'い', cell: 'イ', corner: 3 }, // 正解 (-h, 2h, +h)
+            { label: 'う', cell: 'イ', corner: 2 },
+            { label: 'え', cell: 'オ', corner: 1 }
+          ],
+          question: 'この展開図を組み立てたとき、一番下の面カにある「★」の角と重なる角（あ〜え）はどれですか？',
+          choices: ['あ', 'い', 'う', 'え'], answerIndex: 1,
+          hint: 'カはエ（右面）から前面に折れます。「カ」の先端は左手前上の角まで届きます！',
+          explanation: 'カは前面となって左端まで届くので、「★」は左手前上の角になります。同じ左手前上の角に来るのは「い（イの左下）」です！'
+        },
+        {
+          id: 'nq20', category: 'net', level: 3, source: '総仕上げ・3-3型応用',
+          quizType: 'opposite', grid: ['アイウ..', '..エオカ'], targetCell: 'イ',
+          question: '総仕上げ！「3-3型」の展開図を組み立てて箱を作ったとき、面「イ」と向かい合う面はどれですか？',
+          choices: ['ア', 'エ', 'オ', 'カ'], answerIndex: 2,
+          hint: '「イ」と「オ」は、真ん中の「ウ・エ」をはさんで点対称の位置（Z型の変形）にあります！',
+          explanation: 'ウを底面とすると、イが左側面、エが前面、オが右側面になるため、「イ」と「オ」が左右で向かい合います！'
+        }
+      ];
+
+      /* ==========================================
+       * 5. 永続化・マイ問題管理
+       * ========================================== */
+      const STORAGE_PROGRESS_KEY = 'rittai_sansu_progress_v1';
+      const STORAGE_CUSTOM_KEY = 'rittai_sansu_custom_q_v1';
+
+      function loadProgress() {
+        try {
+          const raw = localStorage.getItem(STORAGE_PROGRESS_KEY);
+          return raw ? JSON.parse(raw) : {};
+        } catch (_) { return {}; }
+      }
+
+      function saveProgress(prog) {
+        try { localStorage.setItem(STORAGE_PROGRESS_KEY, JSON.stringify(prog)); } catch (_) {}
+      }
+
+      function loadCustomQuestions() {
+        try {
+          const raw = localStorage.getItem(STORAGE_CUSTOM_KEY);
+          return raw ? JSON.parse(raw) : [];
+        } catch (_) { return []; }
+      }
+
+      function saveCustomQuestions(list) {
+        try { localStorage.setItem(STORAGE_CUSTOM_KEY, JSON.stringify(list)); } catch (_) {}
+      }
+
+      /* ==========================================
+       * 6. アプリケーション状態・3D描画
+       * ========================================== */
+      const state = {
+        mode: 'quiz', // 'quiz', 'cut', 'net', 'add'
+        // 自由切断・クイズ共通切断状態
+        currentCut: null,
+        cutPoints: [], // [{ pos: Vec3, label: string }]
+        separation: 0.0,
+        soloPart: null,
+        peekCut: false,
+        // 展開図状態
+        currentNet: null,
+        foldProgress: 0.0,
+        netAnim: { playing: false, target: 1.0, lastTime: 0 },
+        optPairColors: true,
+        optVertexNumbers: true,
+        optNetTranslucent: true,
+        // クイズ状態
+        quizCat: 'cut', // 'cut', 'net', 'custom'
+        quizIndex: 0,
+        quizAnswered: false,
+        quizSelectedIndex: -1,
+        progress: loadProgress(),
+        customQuestions: loadCustomQuestions(),
+        // カメラ
+        camera: { yaw: 0.65, pitch: 0.45, zoom: 1.0, distance: 7.5 },
+        dragging: false,
+        lastPointer: { x: 0, y: 0 },
+        canvasSize: { w: 0, h: 0, dpr: 1 }
+      };
+
+      let canvas, ctx;
+
+      function syncCanvasSize() {
+        const container = document.getElementById('canvas-container');
+        if (!container || !canvas) return false;
+        const rect = container.getBoundingClientRect();
+        const w = Math.floor(rect.width), h = Math.floor(rect.height);
+        if (w <= 0 || h <= 0) return false;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        if (state.canvasSize.w !== w || state.canvasSize.h !== h || state.canvasSize.dpr !== dpr) {
+          state.canvasSize.w = w; state.canvasSize.h = h; state.canvasSize.dpr = dpr;
+          canvas.width = Math.floor(w * dpr); canvas.height = Math.floor(h * dpr);
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+        return true;
+      }
+
+      function initCanvas() {
+        canvas = document.getElementById('scene-canvas');
+        ctx = canvas.getContext('2d');
+        syncCanvasSize();
+        window.addEventListener('resize', syncCanvasSize);
+
+        canvas.addEventListener('pointerdown', function (e) {
+          state.dragging = true;
+          state.lastPointer = { x: e.clientX, y: e.clientY };
+          if (canvas.setPointerCapture) { try { canvas.setPointerCapture(e.pointerId); } catch (_) {} }
+        });
+
+        canvas.addEventListener('pointermove', function (e) {
+          if (!state.dragging) return;
+          const dx = e.clientX - state.lastPointer.x, dy = e.clientY - state.lastPointer.y;
+          state.lastPointer = { x: e.clientX, y: e.clientY };
+          state.camera.yaw -= dx * 0.008;
+          state.camera.pitch += dy * 0.008;
+          const limit = Math.PI / 2 - 0.03;
+          state.camera.pitch = Math.max(-limit, Math.min(limit, state.camera.pitch));
+        });
+
+        canvas.addEventListener('pointerup', function (e) {
+          state.dragging = false;
+          if (canvas.releasePointerCapture && canvas.hasPointerCapture && canvas.hasPointerCapture(e.pointerId)) {
+            try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+          }
+        });
+        canvas.addEventListener('pointercancel', function () { state.dragging = false; });
+
+        canvas.addEventListener('wheel', function (e) {
+          e.preventDefault();
+          const factor = e.deltaY > 0 ? 0.92 : 1.08;
+          state.camera.zoom = Math.max(0.4, Math.min(2.4, state.camera.zoom * factor));
+        }, { passive: false });
+      }
+
+      function getCameraBasis() {
+        const yaw = state.camera.yaw, pitch = state.camera.pitch, distance = state.camera.distance;
+        const cosP = Math.cos(pitch);
+        const camDir = new Vec3(Math.sin(yaw) * cosP, Math.sin(pitch), Math.cos(yaw) * cosP);
+        const camPos = camDir.clone().multiplyScalar(distance);
+        const forward = camDir.clone().multiplyScalar(-1);
+        const worldUp = new Vec3(0, 1, 0);
+        const right = new Vec3().crossVectors(forward, worldUp).normalize();
+        const up = new Vec3().crossVectors(right, forward).normalize();
+        return { camPos: camPos, forward: forward, right: right, up: up };
+      }
+
+      function projectPoint(p, basis, width, height) {
+        const rel = new Vec3().subVectors(p, basis.camPos);
+        const cx = rel.dot(basis.right), cy = rel.dot(basis.up), cz = rel.dot(basis.forward);
+        const baseSize = Math.min(width, height), focal = baseSize * 1.1 * state.camera.zoom;
+        const depth = Math.max(0.5, cz);
+        return { x: width / 2 + (cx / depth) * focal, y: height / 2 - (cy / depth) * focal, depth: cz };
+      }
+
+      function shadeColor(rgb, normal, lightDir, isCutFace, alpha) {
+        const diff = Math.max(0, normal.dot(lightDir));
+        const ambient = isCutFace ? 0.72 : 0.58;
+        const intensity = Math.min(1.05, ambient + diff * 0.42);
+        const r = Math.min(255, Math.round(rgb[0] * intensity));
+        const g = Math.min(255, Math.round(rgb[1] * intensity));
+        const b = Math.min(255, Math.round(rgb[2] * intensity));
+        return alpha >= 1 ? 'rgb(' + r + ',' + g + ',' + b + ')' : 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+      }
+
+      function isCutRenderingActive() {
+        if (state.mode === 'cut' || state.mode === 'add') return true;
+        if (state.mode === 'quiz' && getCurrentQuizCategory() === 'cut') return true;
+        return false;
+      }
+
+      function getCurrentQuizCategory() {
+        if (state.quizCat === 'custom') {
+          const q = getActiveQuizList()[state.quizIndex];
+          return q ? q.category : 'cut';
+        }
+        return state.quizCat;
+      }
+
+      function drawCutPolygon(faceObj, baseRgb, cutRgb, basis, width, height, lightDir) {
+        const face = faceObj.face, isFront = faceObj.isFront, worldPts = faceObj.worldPts;
+        const projected = worldPts.map(function (wp) { return projectPoint(wp, basis, width, height); });
+        ctx.beginPath();
+        ctx.moveTo(projected[0].x, projected[0].y);
+        for (let i = 1; i < projected.length; i++) ctx.lineTo(projected[i].x, projected[i].y);
+        ctx.closePath();
+
+        if (face.isCutFace) {
+          const effNorm = isFront ? face.normal : face.normal.clone().multiplyScalar(-1);
+          ctx.fillStyle = shadeColor(cutRgb, effNorm, lightDir, true, 1.0);
+          ctx.fill();
+          ctx.lineWidth = 2.6;
+          ctx.strokeStyle = '#dc2626';
+          ctx.lineJoin = 'round';
+          ctx.stroke();
+        } else {
+          const alpha = isFront ? 0.22 : 0.14;
+          ctx.fillStyle = shadeColor(baseRgb, face.normal, lightDir, false, alpha);
+          ctx.fill();
+          ctx.lineWidth = isFront ? 1.7 : 1.0;
+          ctx.strokeStyle = isFront ? 'rgba(30, 41, 59, 0.78)' : 'rgba(51, 65, 85, 0.28)';
+          ctx.lineJoin = 'round';
+          ctx.stroke();
+        }
+      }
+
+      function drawConvexSolid(faces, offset, baseRgb, cutRgb, basis, width, height, lightDir, skipBackCutFace) {
+        const backTranslucent = [], backCut = [], frontTranslucent = [], frontCut = [];
+        for (const face of faces) {
+          const center = new Vec3();
+          const worldPts = face.points.map(function (p) { return new Vec3().addVectors(p, offset); });
+          for (const wp of worldPts) center.add(wp);
+          center.divideScalar(worldPts.length);
+          const viewVec = new Vec3().subVectors(basis.camPos, center);
+          const isFront = face.normal.dot(viewVec) > 1e-4;
+          const obj = { face: face, worldPts: worldPts, isFront: isFront };
+          if (face.isCutFace) {
+            if (isFront) frontCut.push(obj);
+            else if (!skipBackCutFace) backCut.push(obj);
+          } else {
+            if (isFront) frontTranslucent.push(obj);
+            else backTranslucent.push(obj);
+          }
+        }
+        for (const f of backTranslucent) drawCutPolygon(f, baseRgb, cutRgb, basis, width, height, lightDir);
+        for (const f of backCut)         drawCutPolygon(f, baseRgb, cutRgb, basis, width, height, lightDir);
+        for (const f of frontTranslucent) drawCutPolygon(f, baseRgb, cutRgb, basis, width, height, lightDir);
+        for (const f of frontCut)         drawCutPolygon(f, baseRgb, cutRgb, basis, width, height, lightDir);
+      }
+
+      function renderCutScene(basis, width, height, lightDir) {
+        // 元の立方体の破線または実線（クイズ未解答時は実線で立方体を見せる）
+        const isQuizQuestionOnly = (state.mode === 'quiz' && !state.quizAnswered && !state.peekCut);
+
+        if (isQuizQuestionOnly) {
+          // 解答前は半透明な立方体（切断面なし）を描画して考えさせる
+          const cubeFaces = FACES.map(function (f) {
+            return { points: f.vertices.map(function (vk) { return VERTICES[vk]; }), normal: f.normal, isCutFace: false };
+          });
+          drawConvexSolid(cubeFaces, new Vec3(0, 0, 0), [148, 163, 184], [251, 113, 133], basis, width, height, lightDir, true);
+        } else {
+          // 元の立方体の破線ガイド
+          ctx.save();
+          ctx.strokeStyle = 'rgba(100, 116, 139, 0.35)';
+          ctx.lineWidth = 1.2;
+          ctx.setLineDash([5, 5]);
+          for (const edge of EDGES) {
+            const p1 = projectPoint(VERTICES[edge.v1], basis, width, height);
+            const p2 = projectPoint(VERTICES[edge.v2], basis, width, height);
+            ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+          }
+          ctx.restore();
+
+          if (state.currentCut) {
+            const facesA = state.currentCut.facesA, facesB = state.currentCut.facesB, plane = state.currentCut.plane;
+            const dist = state.separation * 0.75;
+            const offsetA = plane.normal.clone().multiplyScalar(dist);
+            const offsetB = plane.normal.clone().multiplyScalar(-dist);
+            const colorA = [59, 130, 246], colorB = [249, 115, 22], colorCut = [251, 113, 133];
+            const camSide = plane.normal.dot(basis.camPos) - plane.d;
+            const isMerged = state.separation < 0.02 && state.soloPart === null;
+
+            const drawA = function (skip) {
+              if (state.soloPart !== 'B') drawConvexSolid(facesA, offsetA, colorA, colorCut, basis, width, height, lightDir, skip);
+            };
+            const drawB = function (skip) {
+              if (state.soloPart !== 'A') drawConvexSolid(facesB, offsetB, colorB, colorCut, basis, width, height, lightDir, skip);
+            };
+            if (camSide < 0) { drawA(false); drawB(isMerged); }
+            else { drawB(false); drawA(isMerged); }
+          }
+        }
+
+        // 頂点ラベル A〜H
+        const labels = [];
+        for (const [key, pos] of Object.entries(VERTICES)) {
+          const offsetPos = pos.clone().add(pos.clone().normalize().multiplyScalar(0.24));
+          const proj = projectPoint(offsetPos, basis, width, height);
+          labels.push({ key: key, x: proj.x, y: proj.y, depth: proj.depth });
+        }
+        labels.sort(function (a, b) { return b.depth - a.depth; });
+        ctx.save();
+        ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        for (const lbl of labels) {
+          ctx.beginPath(); ctx.arc(lbl.x, lbl.y, 12, 0, Math.PI * 2);
+          ctx.fillStyle = '#1e3a8a'; ctx.fill();
+          ctx.lineWidth = 2; ctx.strokeStyle = '#ffffff'; ctx.stroke();
+          ctx.fillStyle = '#ffffff'; ctx.fillText(lbl.key, lbl.x, lbl.y + 0.5);
+        }
+        ctx.restore();
+
+        // 切断点のオレンジマーカー（＆ P, Q, R ラベル）
+        if ((state.separation < 0.05 || isQuizQuestionOnly) && state.cutPoints.length > 0) {
+          ctx.save();
+          ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          for (const cp of state.cutPoints) {
+            const proj = projectPoint(cp.pos, basis, width, height);
+            const hasText = cp.label && cp.label.length > 0 && !VERTICES[cp.label];
+            const radius = hasText ? 11 : 7;
+            ctx.beginPath(); ctx.arc(proj.x, proj.y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#f59e0b'; ctx.fill();
+            ctx.lineWidth = 2.5; ctx.strokeStyle = '#ffffff'; ctx.stroke();
+            if (hasText) {
+              ctx.fillStyle = '#ffffff';
+              ctx.fillText(cp.label, proj.x, proj.y + 0.5);
+            }
+          }
+          ctx.restore();
+        }
+      }
+
+      function renderNetScene(basis, width, height, lightDir) {
+        if (!state.currentNet) return;
+        const net = state.currentNet, cells = net.cells;
+        const folded = computeFoldedPositions(cells, net.root, state.foldProgress);
+        const activeQuiz = (state.mode === 'quiz') ? getActiveQuizItem() : null;
+        const isNetQuiz = activeQuiz && activeQuiz.category === 'net';
+
+        const drawList = [];
+        for (let i = 0; i < cells.length; i++) {
+          const center = folded.centers[i];
+          const rel = new Vec3().subVectors(center, basis.camPos);
+          drawList.push({
+            index: i, cell: cells[i], corners: folded.cornersList[i],
+            center: center, normal: folded.normals[i], depth: rel.dot(basis.forward)
+          });
+        }
+        drawList.sort(function (a, b) { return b.depth - a.depth; });
+
+        for (const item of drawList) {
+          const corners = item.corners;
+          const projected = corners.map(function (c) { return projectPoint(c, basis, width, height); });
+          const centerProj = projectPoint(item.center, basis, width, height);
+
+          const viewVec = new Vec3().subVectors(basis.camPos, item.center);
+          const isInner = item.normal.dot(viewVec) > 0;
+          const effNormal = isInner ? item.normal : item.normal.clone().multiplyScalar(-1);
+
+          // クイズ未解答時：向かい合う面のクイズなら対象面だけ強調、それ以外は落ち着いた色
+          let rgb;
+          if (isNetQuiz && !state.quizAnswered) {
+            if (activeQuiz.targetCell === item.cell.id) rgb = [96, 165, 250];
+            else rgb = [226, 232, 240];
+          } else {
+            rgb = state.optPairColors ? item.cell.axisColor : item.cell.distinctColor;
+          }
+
+          const alpha = (isNetQuiz && !state.quizAnswered) ? 0.92 : (state.optNetTranslucent ? 0.65 : 0.96);
+
+          ctx.beginPath();
+          ctx.moveTo(projected[0].x, projected[0].y);
+          for (let k = 1; k < 4; k++) ctx.lineTo(projected[k].x, projected[k].y);
+          ctx.closePath();
+          ctx.fillStyle = shadeColor(rgb, effNormal, lightDir, false, alpha);
+          ctx.fill();
+
+          ctx.lineWidth = (isNetQuiz && activeQuiz.targetCell === item.cell.id) ? 3.0 : 2.0;
+          ctx.strokeStyle = !net.preset.valid ? '#b91c1c' : ((isNetQuiz && activeQuiz.targetCell === item.cell.id) ? '#1d4ed8' : '#1e293b');
+          ctx.lineJoin = 'round';
+          ctx.stroke();
+
+          // 面文字（ア・イ・ウ...）
+          ctx.save();
+          ctx.font = 'bold 18px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#0f172a'; ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 4;
+          ctx.strokeText(item.cell.id, centerProj.x, centerProj.y);
+          ctx.fillText(item.cell.id, centerProj.x, centerProj.y);
+          ctx.restore();
+
+          // 展開図の頂点問題用 ★・あ・い・う・え マーカー
+          if (isNetQuiz && activeQuiz.quizType === 'vertex') {
+            ctx.save();
+            ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            for (let k = 0; k < 4; k++) {
+              const px = projected[k].x * 0.80 + centerProj.x * 0.20;
+              const py = projected[k].y * 0.80 + centerProj.y * 0.20;
+
+              if (activeQuiz.targetCorner && activeQuiz.targetCorner.cell === item.cell.id && activeQuiz.targetCorner.corner === k) {
+                ctx.beginPath(); ctx.arc(px, py, 11, 0, Math.PI * 2);
+                ctx.fillStyle = '#f59e0b'; ctx.fill();
+                ctx.lineWidth = 2; ctx.strokeStyle = '#ffffff'; ctx.stroke();
+                ctx.fillStyle = '#ffffff'; ctx.fillText('★', px, py + 0.5);
+              }
+              if (activeQuiz.choiceCorners) {
+                for (const cc of activeQuiz.choiceCorners) {
+                  if (cc.cell === item.cell.id && cc.corner === k) {
+                    ctx.beginPath(); ctx.arc(px, py, 10.5, 0, Math.PI * 2);
+                    ctx.fillStyle = '#2563eb'; ctx.fill();
+                    ctx.lineWidth = 2; ctx.strokeStyle = '#ffffff'; ctx.stroke();
+                    ctx.fillStyle = '#ffffff'; ctx.fillText(cc.label, px, py + 0.5);
+                  }
+                }
+              }
+            }
+            ctx.restore();
+          } else if (!isNetQuiz && state.optVertexNumbers && net.preset.valid) {
+            // 自由展開図モードの1〜8ピン
+            ctx.save();
+            ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            for (let k = 0; k < 4; k++) {
+              const vNum = item.cell.cornerVertexIds[k];
+              const px = projected[k].x * 0.84 + centerProj.x * 0.16;
+              const py = projected[k].y * 0.84 + centerProj.y * 0.16;
+              const vColor = VERTEX_NUM_COLORS[(vNum - 1) % VERTEX_NUM_COLORS.length];
+              ctx.beginPath(); ctx.arc(px, py, 8, 0, Math.PI * 2);
+              ctx.fillStyle = vColor; ctx.fill();
+              ctx.lineWidth = 1.5; ctx.strokeStyle = '#ffffff'; ctx.stroke();
+              ctx.fillStyle = '#ffffff'; ctx.fillText(String(vNum), px, py + 0.5);
+            }
+            ctx.restore();
+          }
+        }
+      }
+
+      function updateNetAnimation(now) {
+        if (!state.netAnim.playing) return;
+        const dt = Math.min(0.05, (now - state.netAnim.lastTime) / 1000);
+        state.netAnim.lastTime = now;
+        const speed = 0.72;
+        if (state.netAnim.target > state.foldProgress) {
+          state.foldProgress = Math.min(state.netAnim.target, state.foldProgress + speed * dt);
+          if (state.foldProgress >= state.netAnim.target) { state.netAnim.playing = false; updatePlayButtonUI(); }
+        } else {
+          state.foldProgress = Math.max(state.netAnim.target, state.foldProgress - speed * dt);
+          if (state.foldProgress <= state.netAnim.target) { state.netAnim.playing = false; updatePlayButtonUI(); }
+        }
+        const pct = Math.round(state.foldProgress * 100);
+        document.getElementById('fold-slider').value = pct;
+        document.getElementById('fold-value').textContent = pct + '%';
+      }
+
+      function renderScene(now) {
+        if (!isCutRenderingActive()) updateNetAnimation(now || performance.now());
+        if (!syncCanvasSize()) return;
+        const width = state.canvasSize.w, height = state.canvasSize.h;
+        ctx.clearRect(0, 0, width, height);
+        const basis = getCameraBasis();
+        const lightDir = new Vec3(0.4, 0.85, 0.55).normalize();
+
+        if (isCutRenderingActive()) renderCutScene(basis, width, height, lightDir);
+        else renderNetScene(basis, width, height, lightDir);
+      }
+
+      function renderLoop(now) { renderScene(now); requestAnimationFrame(renderLoop); }
+
+      /* ==========================================
+       * 7. クイズ制御ロジック
+       * ========================================== */
+      function getActiveQuizList() {
+        if (state.quizCat === 'cut') return CUT_QUIZ_DATA;
+        if (state.quizCat === 'net') return NET_QUIZ_DATA;
+        return state.customQuestions;
+      }
+
+      function getActiveQuizItem() {
+        const list = getActiveQuizList();
+        return list[state.quizIndex] || null;
+      }
+
+      function updateQuizStatsUI() {
+        const list = getActiveQuizList();
+        let solvedCount = 0;
+        for (const q of list) {
+          if (state.progress[q.id] === 'win') solvedCount++;
+        }
+        document.getElementById('quiz-score-text').textContent = '正解数: ' + solvedCount + ' / ' + list.length;
+        document.getElementById('custom-count').textContent = state.customQuestions.length;
+      }
+
+      function renderQuizNumberPills() {
+        const container = document.getElementById('quiz-number-grid');
+        container.innerHTML = '';
+        const list = getActiveQuizList();
+        list.forEach(function (q, idx) {
+          const btn = document.createElement('button');
+          btn.className = 'q-num-pill';
+          const status = state.progress[q.id];
+          if (status === 'win') btn.classList.add('solved');
+          else if (status === 'lose') btn.classList.add('wrong');
+          if (idx === state.quizIndex) btn.classList.add('current');
+          btn.textContent = String(idx + 1);
+          btn.addEventListener('click', function () { loadQuizQuestion(idx); });
+          container.appendChild(btn);
+        });
+      }
+
+      function loadQuizQuestion(idx) {
+        const list = getActiveQuizList();
+        if (list.length === 0) {
+          document.getElementById('q-question-text').textContent = '追加された問題がまだありません。「➕ 問題を追加」タブから新しい問題を作成・インポートできます！';
+          document.getElementById('q-choices-container').innerHTML = '';
+          document.getElementById('q-result-box').classList.add('hidden');
+          document.getElementById('q-hint-box').classList.add('hidden');
+          renderQuizNumberPills();
+          updateQuizStatsUI();
+          return;
+        }
+
+        state.quizIndex = Math.max(0, Math.min(list.length - 1, idx));
+        state.quizAnswered = false;
+        state.quizSelectedIndex = -1;
+        state.peekCut = false;
+        state.netAnim.playing = false;
+
+        const q = list[state.quizIndex];
+        renderQuizNumberPills();
+        updateQuizStatsUI();
+
+        // メタ情報
+        const lvTag = document.getElementById('q-level-tag');
+        lvTag.className = 'q-level-tag lv' + (q.level || 1);
+        lvTag.textContent = q.level === 1 ? '★ 基本' : (q.level === 2 ? '★★ 標準' : '★★★ 難関');
+        document.getElementById('q-source-tag').textContent = q.source || '問題';
+        document.getElementById('q-question-text').textContent = '【第' + (state.quizIndex + 1) + '問】 ' + q.question;
+
+        // 選択肢生成
+        const choicesBox = document.getElementById('q-choices-container');
+        choicesBox.innerHTML = '';
+        const nums = ['A', 'B', 'C', 'D'];
+        q.choices.forEach(function (choiceText, cIdx) {
+          const btn = document.createElement('button');
+          btn.className = 'q-choice-btn';
+          btn.innerHTML = '<span class="choice-index">' + nums[cIdx] + '</span><span>' + choiceText + '</span>';
+          btn.addEventListener('click', function () { handleQuizAnswer(cIdx); });
+          choicesBox.appendChild(btn);
+        });
+
+        document.getElementById('q-hint-box').classList.add('hidden');
+        document.getElementById('q-hint-box').textContent = '💡 ' + (q.hint || '3D画面をドラッグして色々な角度から見てみよう！');
+        document.getElementById('q-result-box').classList.add('hidden');
+
+        // 3D表示の切り替え
+        if (q.category === 'cut') {
+          document.getElementById('controls-cut').classList.remove('hidden');
+          document.getElementById('controls-net').classList.add('hidden');
+          document.getElementById('btn-peek-cut').classList.remove('hidden');
+          document.getElementById('btn-peek-cut').textContent = '👀 切断面をチラ見';
+
+          state.separation = 0.0;
+          state.soloPart = null;
+          document.getElementById('separation-slider').value = 0;
+          document.getElementById('separation-value').textContent = '0.0';
+          document.getElementById('btn-toggle-part').textContent = '両方表示中';
+
+          const resolved = q.points.map(resolvePointSpec);
+          if (resolved.every(Boolean)) {
+            performCut(resolved[0], resolved[1], resolved[2]);
+          }
+          state.camera.yaw = 0.65; state.camera.pitch = 0.45; state.camera.zoom = 1.0;
+
+          document.getElementById('badge-label').textContent = '出題中：';
+          const bv = document.getElementById('badge-value');
+          bv.className = 'value quiz';
+          bv.textContent = '断面図 Q' + (state.quizIndex + 1);
+        } else {
+          document.getElementById('controls-cut').classList.add('hidden');
+          document.getElementById('controls-net').classList.remove('hidden');
+          document.getElementById('btn-peek-cut').classList.add('hidden');
+
+          state.currentNet = buildNetTreeFromGrid(q.grid, q.valid !== false);
+          state.foldProgress = 0.0;
+          document.getElementById('fold-slider').value = 0;
+          document.getElementById('fold-value').textContent = '0%';
+          updatePlayButtonUI();
+
+          // 展開図がよく見える角度
+          state.camera.yaw = 0.05; state.camera.pitch = Math.PI / 2 - 0.12; state.camera.zoom = 0.85;
+
+          document.getElementById('badge-label').textContent = '出題中：';
+          const bv = document.getElementById('badge-value');
+          bv.className = 'value quiz';
+          bv.textContent = '展開図 Q' + (state.quizIndex + 1);
+        }
+      }
+
+      function handleQuizAnswer(selectedIndex) {
+        if (state.quizAnswered) return;
+        const q = getActiveQuizItem();
+        if (!q) return;
+
+        state.quizAnswered = true;
+        state.quizSelectedIndex = selectedIndex;
+        const isWin = (selectedIndex === q.answerIndex);
+        state.progress[q.id] = isWin ? 'win' : 'lose';
+        saveProgress(state.progress);
+
+        const btns = document.querySelectorAll('#q-choices-container .q-choice-btn');
+        btns.forEach(function (btn, idx) {
+          btn.disabled = true;
+          if (idx === q.answerIndex) btn.classList.add('correct');
+          else if (idx === selectedIndex && !isWin) btn.classList.add('incorrect');
+        });
+
+        const resBox = document.getElementById('q-result-box');
+        resBox.classList.remove('hidden', 'win', 'lose');
+        resBox.classList.add(isWin ? 'win' : 'lose');
+        document.getElementById('q-result-title').textContent = isWin
+          ? '🎉 大正解！素晴らしい！'
+          : '惜しい！正解は「' + q.choices[q.answerIndex] + '」です';
+        document.getElementById('q-explain-text').textContent = q.explanation;
+
+        renderQuizNumberPills();
+        updateQuizStatsUI();
+
+        // 解答と同時に3Dアニメ・切断を開放！
+        if (q.category === 'cut') {
+          state.separation = 0.5;
+          document.getElementById('separation-slider').value = 0.5;
+          document.getElementById('separation-value').textContent = '0.5';
+          document.getElementById('btn-peek-cut').classList.add('hidden');
+
+          document.getElementById('badge-label').textContent = '切り口の形：';
+          const bv = document.getElementById('badge-value');
+          bv.className = 'value';
+          bv.textContent = state.currentCut ? state.currentCut.shapeName : '-';
+        } else {
+          // 展開図：自動で斜め視点にしてパタパタ組み立て開始！
+          state.camera.yaw = 0.45; state.camera.pitch = 0.55; state.camera.zoom = 0.9;
+          state.netAnim.target = 1.0;
+          state.netAnim.playing = true;
+          state.netAnim.lastTime = performance.now();
+          updatePlayButtonUI();
+          updateNetBadge();
+        }
+      }
+
+      /* ==========================================
+       * 8. モード切り替え・UIイベント
+       * ========================================== */
+      function updatePlayButtonUI() {
+        const btn = document.getElementById('btn-net-play');
+        if (!btn) return;
+        if (state.netAnim.playing) btn.textContent = '⏸ 一時停止';
+        else if (state.foldProgress >= 0.99) btn.textContent = '◀ ひらく（展開）';
+        else btn.textContent = '▶ 組み立てる';
+      }
+
+      function updateNetBadge() {
+        if (!state.currentNet) return;
+        document.getElementById('badge-label').textContent = '判定：';
+        const bv = document.getElementById('badge-value');
+        if (state.currentNet.preset.valid && !state.currentNet.hasOverlap) {
+          bv.className = 'value ok'; bv.textContent = '立方体になる ○';
+        } else {
+          bv.className = 'value ng'; bv.textContent = '面が重なりNG ×';
+        }
+      }
+
+      function switchMode(newMode) {
+        state.mode = newMode;
+        state.netAnim.playing = false;
+
+        ['quiz', 'cut', 'net', 'add'].forEach(function (m) {
+          document.getElementById('mode-btn-' + m).classList.toggle('active', m === newMode);
+          document.getElementById('panel-' + m).classList.toggle('active', m === newMode);
+        });
+
+        if (newMode === 'quiz') {
+          loadQuizQuestion(state.quizIndex);
+        } else if (newMode === 'cut' || newMode === 'add') {
+          document.getElementById('controls-cut').classList.remove('hidden');
+          document.getElementById('controls-net').classList.add('hidden');
+          document.getElementById('btn-peek-cut').classList.add('hidden');
+          state.separation = 0.8;
+          document.getElementById('separation-slider').value = 0.8;
+          document.getElementById('separation-value').textContent = '0.8';
+          applyCutPreset('regular_hexagon');
+          state.camera.yaw = 0.65; state.camera.pitch = 0.45; state.camera.zoom = 1.0;
+          if (newMode === 'add') renderCustomQuestionList();
+        } else if (newMode === 'net') {
+          document.getElementById('controls-cut').classList.add('hidden');
+          document.getElementById('controls-net').classList.remove('hidden');
+          selectNetPreset('n141_1');
+          state.camera.yaw = 0.35; state.camera.pitch = 0.72; state.camera.zoom = 0.88;
+        }
+      }
+
+      function performCut(spec1, spec2, spec3) {
+        const r1 = (spec1 instanceof Vec3) ? { pos: spec1, label: '' } : spec1;
+        const r2 = (spec2 instanceof Vec3) ? { pos: spec2, label: '' } : spec2;
+        const r3 = (spec3 instanceof Vec3) ? { pos: spec3, label: '' } : spec3;
+
+        if (!r1 || !r2 || !r3 || !r1.pos || !r2.pos || !r3.pos) {
+          showError('切断点の座標が取得できませんでした。'); return;
+        }
+        const plane = createPlaneFromThreePoints(r1.pos, r2.pos, r3.pos);
+        if (!plane) { alert('選んだ3点が一直線上にあるため、平面を作れません。'); return; }
+        const result = sliceCube(plane);
+        if (!result) { alert('立方体と交差しませんでした。'); return; }
+        hideError();
+        state.currentCut = result;
+        state.cutPoints = [r1, r2, r3];
+        if (state.mode === 'cut' || state.mode === 'add') {
+          document.getElementById('badge-label').textContent = '切り口の形：';
+          const bv = document.getElementById('badge-value');
+          bv.className = 'value';
+          bv.textContent = result.shapeName;
+        }
+      }
+
+      function applyCutPreset(presetKey) {
+        const preset = CUT_PRESETS[presetKey];
+        if (!preset) return;
+        document.querySelectorAll('#panel-cut .preset-card').forEach(function (c) {
+          c.classList.toggle('active', c.dataset.preset === presetKey);
+        });
+        document.getElementById('cut-explain-text').textContent = preset.explanation;
+        const s1 = document.getElementById('point1-select'), s2 = document.getElementById('point2-select'), s3 = document.getElementById('point3-select');
+        if (s1 && s2 && s3 && preset.pointKeys) {
+          s1.value = preset.pointKeys[0]; s2.value = preset.pointKeys[1]; s3.value = preset.pointKeys[2];
+        }
+        performCut(preset.points[0], preset.points[1], preset.points[2]);
+      }
+
+      function selectNetPreset(presetId) {
+        const preset = NET_PRESETS.find(function (p) { return p.id === presetId; });
+        if (!preset) return;
+        state.currentNet = buildNetTreeFromGrid(preset.grid, preset.valid);
+        state.netAnim.playing = false;
+        state.foldProgress = 0.0;
+        document.getElementById('fold-slider').value = 0;
+        document.getElementById('fold-value').textContent = '0%';
+        updatePlayButtonUI();
+        document.querySelectorAll('#panel-net .preset-card').forEach(function (c) {
+          c.classList.toggle('active', c.dataset.netId === presetId);
+        });
+        document.getElementById('net-explain-text').textContent = preset.explanation;
+        if (state.mode === 'net') updateNetBadge();
+      }
+
+      function buildMiniGridHTML(grid) {
+        const rows = grid.length;
+        const cols = Math.max.apply(null, grid.map(function (r) { return r.length; }));
+        let html = '<div class="mini-grid" style="grid-template-columns: repeat(' + cols + ', 6px);">';
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const ch = (grid[r] && grid[r][c]) ? grid[r][c] : '.';
+            html += '<span class="mini-cell ' + (ch !== '.' && ch !== ' ' ? 'filled' : 'empty') + '"></span>';
+          }
+        }
+        return html + '</div>';
+      }
+
+      function populateNetCards() {
+        const containers = {
+          '141': document.getElementById('net-grid-141'),
+          '231': document.getElementById('net-grid-231'),
+          'other': document.getElementById('net-grid-other'),
+          'ng': document.getElementById('net-grid-ng')
+        };
+        for (const preset of NET_PRESETS) {
+          const box = containers[preset.group];
+          if (!box) continue;
+          const btn = document.createElement('button');
+          btn.className = 'preset-card' + (preset.valid ? '' : ' ng-card');
+          btn.dataset.netId = preset.id;
+          btn.innerHTML =
+            '<div class="net-card-top"><span class="preset-name">' + preset.name + '</span>' + buildMiniGridHTML(preset.grid) + '</div>' +
+            '<span class="preset-desc">' + preset.desc + '</span>';
+          btn.addEventListener('click', function () { selectNetPreset(preset.id); });
+          box.appendChild(btn);
+        }
+      }
+
+      function populateAllPointSelects() {
+        const ids = ['point1-select', 'point2-select', 'point3-select', 'f-p1', 'f-p2', 'f-p3'];
+        ids.forEach(function (id, idx) {
+          const sel = document.getElementById(id);
+          if (!sel) return;
+          sel.innerHTML = '';
+          const groups = [
+            { label: '【頂点 (8個)】', filter: function (p) { return p.group === 'vertex'; } },
+            { label: '【辺の中点 (12個)】', filter: function (p) { return p.group === 'mid'; } },
+            { label: '【辺の3等分点 (24個)】', filter: function (p) { return p.group === 'third'; } }
+          ];
+          groups.forEach(function (g) {
+            const og = document.createElement('optgroup');
+            og.label = g.label;
+            SELECTABLE_POINTS.filter(g.filter).forEach(function (p) {
+              const opt = document.createElement('option');
+              opt.value = p.id; opt.textContent = p.label;
+              og.appendChild(opt);
+            });
+            sel.appendChild(og);
+          });
+          // 初期値が被らないように調整
+          if (id === 'f-p1') sel.value = 'M_AB';
+          if (id === 'f-p2') sel.value = 'M_BC';
+          if (id === 'f-p3') sel.value = 'M_CG';
+        });
+      }
+
+      function renderCustomQuestionList() {
+        const box = document.getElementById('custom-questions-list');
+        if (!box) return;
+        box.innerHTML = '';
+        if (state.customQuestions.length === 0) {
+          box.innerHTML = '<p style="font-size:12px; color:#64748b;">まだ追加された問題はありません。</p>';
+          return;
+        }
+        state.customQuestions.forEach(function (q, idx) {
+          const div = document.createElement('div');
+          div.className = 'custom-q-item';
+          div.innerHTML =
+            '<div style="flex:1; margin-right:8px;"><strong>[' + (q.category === 'cut' ? '断面' : '展開') + ']</strong> ' +
+            q.question.slice(0, 32) + '...</div>' +
+            '<button class="btn-subtle" data-del-idx="' + idx + '" style="color:#dc2626;">削除</button>';
+          box.appendChild(div);
+        });
+        box.querySelectorAll('[data-del-idx]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            const idx = parseInt(btn.dataset.delIdx, 10);
+            state.customQuestions.splice(idx, 1);
+            saveCustomQuestions(state.customQuestions);
+            renderCustomQuestionList();
+            updateQuizStatsUI();
+          });
+        });
+      }
+
+      function initUI() {
+        // ヘッダーモード切り替え
+        document.getElementById('mode-btn-quiz').addEventListener('click', function () { switchMode('quiz'); });
+        document.getElementById('mode-btn-cut').addEventListener('click', function () { switchMode('cut'); });
+        document.getElementById('mode-btn-net').addEventListener('click', function () { switchMode('net'); });
+        document.getElementById('mode-btn-add').addEventListener('click', function () { switchMode('add'); });
+
+        // クイズカテゴリ切り替え
+        document.querySelectorAll('.quiz-cat-btn').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            document.querySelectorAll('.quiz-cat-btn').forEach(function (b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            state.quizCat = btn.dataset.qcat;
+            state.quizIndex = 0;
+            loadQuizQuestion(0);
+          });
+        });
+
+        document.getElementById('btn-show-hint').addEventListener('click', function () {
+          document.getElementById('q-hint-box').classList.toggle('hidden');
+        });
+
+        document.getElementById('btn-peek-cut').addEventListener('click', function () {
+          state.peekCut = !state.peekCut;
+          document.getElementById('btn-peek-cut').textContent = state.peekCut ? '🙈 切断面を隠す' : '👀 切断面をチラ見';
+        });
+
+        document.getElementById('btn-q-prev').addEventListener('click', function () {
+          if (state.quizIndex > 0) loadQuizQuestion(state.quizIndex - 1);
+        });
+        document.getElementById('btn-q-next').addEventListener('click', function () {
+          const list = getActiveQuizList();
+          if (state.quizIndex < list.length - 1) loadQuizQuestion(state.quizIndex + 1);
+          else alert('このカテゴリの最後の問題まで完了しました！');
+        });
+
+        document.getElementById('btn-reset-progress').addEventListener('click', function () {
+          if (confirm('これまでの正解記録をリセットしますか？')) {
+            state.progress = {};
+            saveProgress({});
+            renderQuizNumberPills();
+            updateQuizStatsUI();
+          }
+        });
+
+        // サブタブ
+        document.querySelectorAll('.tab-btn').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            const panel = document.getElementById('panel-' + btn.dataset.panel);
+            if (!panel) return;
+            panel.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+            panel.querySelectorAll('.tab-content').forEach(function (c) { c.classList.remove('active'); });
+            btn.classList.add('active');
+            const target = document.getElementById('tab-' + btn.dataset.tab);
+            if (target) target.classList.add('active');
+            if (btn.dataset.tab === 'add-list') renderCustomQuestionList();
+          });
+        });
+
+        // 自由切断ラボ
+        document.querySelectorAll('#panel-cut .preset-card').forEach(function (card) {
+          card.addEventListener('click', function () { applyCutPreset(card.dataset.preset); });
+        });
+
+        const sepSlider = document.getElementById('separation-slider');
+        sepSlider.addEventListener('input', function (e) {
+          state.separation = parseFloat(e.target.value);
+          document.getElementById('separation-value').textContent = state.separation.toFixed(1);
+        });
+
+        const btnTogglePart = document.getElementById('btn-toggle-part');
+        btnTogglePart.addEventListener('click', function () {
+          if (state.soloPart === null) { state.soloPart = 'A'; btnTogglePart.textContent = 'パーツAのみ'; }
+          else if (state.soloPart === 'A') { state.soloPart = 'B'; btnTogglePart.textContent = 'パーツBのみ'; }
+          else { state.soloPart = null; btnTogglePart.textContent = '両方表示中'; }
+        });
+
+        document.getElementById('btn-reset-view-cut').addEventListener('click', function () {
+          state.camera.yaw = 0.65; state.camera.pitch = 0.45; state.camera.zoom = 1.0;
+        });
+
+        document.getElementById('btn-apply-cut').addEventListener('click', function () {
+          const id1 = document.getElementById('point1-select').value;
+          const id2 = document.getElementById('point2-select').value;
+          const id3 = document.getElementById('point3-select').value;
+          if (id1 === id2 || id2 === id3 || id1 === id3) { alert('異なる3点を選んでください。'); return; }
+          document.querySelectorAll('#panel-cut .preset-card').forEach(function (c) { c.classList.remove('active'); });
+          document.getElementById('cut-explain-text').textContent = 'カスタム切断を実行しました。';
+          performCut(resolvePointSpec(id1), resolvePointSpec(id2), resolvePointSpec(id3));
+        });
+
+        // 展開図コントロール
+        document.getElementById('btn-net-play').addEventListener('click', function () {
+          if (state.netAnim.playing) state.netAnim.playing = false;
+          else {
+            state.netAnim.target = state.foldProgress >= 0.99 ? 0.0 : 1.0;
+            state.netAnim.playing = true;
+            state.netAnim.lastTime = performance.now();
+          }
+          updatePlayButtonUI();
+        });
+
+        document.getElementById('fold-slider').addEventListener('input', function (e) {
+          state.netAnim.playing = false;
+          const pct = parseInt(e.target.value, 10);
+          state.foldProgress = pct / 100;
+          document.getElementById('fold-value').textContent = pct + '%';
+          updatePlayButtonUI();
+        });
+
+        document.getElementById('btn-net-topview').addEventListener('click', function () {
+          state.camera.yaw = 0.0; state.camera.pitch = Math.PI / 2 - 0.04; state.camera.zoom = 0.85;
+        });
+        document.getElementById('btn-reset-view-net').addEventListener('click', function () {
+          state.camera.yaw = 0.45; state.camera.pitch = 0.65; state.camera.zoom = 0.9;
+        });
+
+        document.getElementById('opt-pair-colors').addEventListener('change', function (e) { state.optPairColors = e.target.checked; });
+        document.getElementById('opt-vertex-numbers').addEventListener('change', function (e) { state.optVertexNumbers = e.target.checked; });
+        document.getElementById('opt-net-translucent').addEventListener('change', function (e) { state.optNetTranslucent = e.target.checked; });
+
+        // 問題追加・JSON拡張機能
+        document.getElementById('btn-copy-template').addEventListener('click', function () {
+          const sample = [
+            {
+              category: 'cut',
+              level: 2,
+              source: '○○中 過去問',
+              points: [
+                { edge: 'AB', ratio: 0.5, label: 'P' },
+                { edge: 'DA', ratio: 0.5, label: 'Q' },
+                { edge: 'CG', ratio: 0.5, label: 'R' }
+              ],
+              question: '点P, Q, Rを通る平面で切ったときの切り口は何角形ですか？',
+              choices: ['三角形', '四角形', '五角形', '六角形'],
+              answerIndex: 2,
+              hint: '平行な面の切り口は平行になります。',
+              explanation: '5つの面を通過するため五角形になります。'
+            }
+          ];
+          document.getElementById('json-import-area').value = JSON.stringify(sample, null, 2);
+        });
+
+        document.getElementById('btn-import-json').addEventListener('click', function () {
+          const raw = document.getElementById('json-import-area').value.trim();
+          if (!raw) { alert('JSONデータを入力してください。'); return; }
+          try {
+            let parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) parsed = [parsed];
+            let added = 0;
+            for (const item of parsed) {
+              if (!item.question || !Array.isArray(item.choices) || item.choices.length < 2) continue;
+              item.id = 'custom_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+              item.category = item.category || 'cut';
+              state.customQuestions.push(item);
+              added++;
+            }
+            if (added === 0) { alert('有効な問題データが見つかりませんでした。'); return; }
+            saveCustomQuestions(state.customQuestions);
+            updateQuizStatsUI();
+            renderCustomQuestionList();
+            alert(added + '問をマイ問題に追加しました！');
+          } catch (e) {
+            alert('JSONの形式が正しくありません: ' + e.message);
+          }
+        });
+
+        document.getElementById('btn-add-single').addEventListener('click', function () {
+          const p1 = document.getElementById('f-p1').value;
+          const p2 = document.getElementById('f-p2').value;
+          const p3 = document.getElementById('f-p3').value;
+          const question = document.getElementById('f-question').value.trim();
+          const c0 = document.getElementById('f-c0').value.trim();
+          const c1 = document.getElementById('f-c1').value.trim();
+          const c2 = document.getElementById('f-c2').value.trim();
+          const c3 = document.getElementById('f-c3').value.trim();
+          const ans = parseInt(document.getElementById('f-ans').value, 10);
+          const explain = document.getElementById('f-explain').value.trim();
+          const source = document.getElementById('f-source').value.trim() || 'マイ問題';
+
+          if (!question || !c0 || !c1 || !c2 || !c3) {
+            alert('問題文と4つの選択肢をすべて入力してください。'); return;
+          }
+          if (p1 === p2 || p2 === p3 || p1 === p3) {
+            alert('異なる3点を選んでください。'); return;
+          }
+
+          const r1 = resolvePointSpec(p1), r2 = resolvePointSpec(p2), r3 = resolvePointSpec(p3);
+          const newQ = {
+            id: 'custom_' + Date.now(),
+            category: 'cut',
+            level: 2,
+            source: source,
+            points: [
+              { posSpec: p1, label: 'P' },
+              { posSpec: p2, label: 'Q' },
+              { posSpec: p3, label: 'R' }
+            ].map(function (obj) {
+              if (obj.posSpec.length === 1) return { vertex: obj.posSpec, label: obj.posSpec };
+              return obj.posSpec;
+            }),
+            question: question,
+            choices: [c0, c1, c2, c3],
+            answerIndex: ans,
+            hint: '3D画面をドラッグして、3つの点の位置関係を確認しよう。',
+            explanation: explain || '3D画面で実際の切り口を確認してみよう！'
+          };
+          // resolvePointSpec で検証
+          if (!r1 || !r2 || !r3) { alert('点の解決に失敗しました'); return; }
+          state.customQuestions.push(newQ);
+          saveCustomQuestions(state.customQuestions);
+          updateQuizStatsUI();
+          renderCustomQuestionList();
+          alert('1問をマイ問題に追加しました！「問題に挑戦 → ⭐追加」から解けます！');
+        });
+
+        document.getElementById('btn-export-json').addEventListener('click', function () {
+          const text = JSON.stringify(state.customQuestions, null, 2);
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () {
+              alert('マイ問題のJSONをクリップボードにコピーしました！');
+            });
+          } else {
+            document.getElementById('json-import-area').value = text;
+            alert('「JSONで一括追加」欄に書き出しました！');
+          }
+        });
+
+        document.getElementById('btn-clear-custom').addEventListener('click', function () {
+          if (confirm('追加したマイ問題をすべて削除しますか？')) {
+            state.customQuestions = [];
+            saveCustomQuestions([]);
+            renderCustomQuestionList();
+            updateQuizStatsUI();
+          }
+        });
+      }
+
+      function bootApp() {
+        try {
+          initUI();
+          populateAllPointSelects();
+          populateNetCards();
+          initCanvas();
+          applyCutPreset('regular_hexagon');
+          selectNetPreset('n141_1');
+          switchMode('quiz');
+          requestAnimationFrame(renderLoop);
+        } catch (err) {
+          showError(err && err.message ? err.message : String(err));
+        }
+      }
+
+      if (document.readyState === 'loading') {
+        window.addEventListener('DOMContentLoaded', bootApp);
+      } else {
+        bootApp();
+      }
+    })();
+  </script>
+</body>
+</html>
